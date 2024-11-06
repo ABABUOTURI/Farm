@@ -118,17 +118,6 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
                 );
               },
             ),
-            
-            ListTile(
-              leading: Icon(Icons.list),
-              title: Text('Inventory Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorInventoryManagementPage()),
-                );
-              },
-            ),
             ListTile(
               leading: Icon(Icons.build),
               title: Text('Equipment Management'),
@@ -136,16 +125,6 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SupervisorEquipmentManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.event_note),
-              title: Text('Task Scheduling'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorTaskSchedulingPage()),
                 );
               },
             ),

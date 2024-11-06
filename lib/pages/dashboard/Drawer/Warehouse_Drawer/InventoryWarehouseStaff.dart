@@ -1,40 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../../../models/inventory_item.dart';
 
-class WarehouseStaffInventoryManagementPage extends StatefulWidget {
+class InventoryManagementPage extends StatefulWidget {
   @override
-  _WarehouseStaffInventoryManagementPageState createState() => _WarehouseStaffInventoryManagementPageState();
+  _InventoryManagementPageState createState() => _InventoryManagementPageState();
 }
 
-class _WarehouseStaffInventoryManagementPageState extends State<WarehouseStaffInventoryManagementPage> {
-  List<InventoryItem> inventoryItems = [];
-  
-  void _addInventoryItem(InventoryItem item) {
-    setState(() {
-      inventoryItems.add(item);
-    });
+class _InventoryManagementPageState extends State<InventoryManagementPage> {
+  late Box<InventoryItem> inventoryBox;
+  String _selectedType = 'All';
+
+  // Controllers for form inputs
+  final TextEditingController _itemNameController = TextEditingController();
+  final TextEditingController _itemQuantityController = TextEditingController();
+  final TextEditingController _itemUnitController = TextEditingController();
+  String _itemType = 'Consumable';
+
+  @override
+  void initState() {
+    super.initState();
+    inventoryBox = Hive.box<InventoryItem>('inventoryBox');
   }
 
-  void _editInventoryItem(int index, InventoryItem item) {
-    setState(() {
-      inventoryItems[index] = item;
-    });
+  @override
+  void dispose() {
+    _itemNameController.dispose();
+    _itemQuantityController.dispose();
+    _itemUnitController.dispose();
+    super.dispose();
   }
 
-  void _deleteInventoryItem(int index) {
-    setState(() {
-      inventoryItems.removeAt(index);
-    });
-  }
+  // Method to add a new item to the inventory
+  void _addItem() {
+    String itemName = _itemNameController.text.trim();
+    String itemQuantity = _itemQuantityController.text.trim();
+    String itemUnit = _itemUnitController.text.trim();
 
-  void _showLowStockAlert() {
-    // Logic to check low stock and show alert
-    for (var item in inventoryItems) {
-      if (item.quantity < item.minStockLevel) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${item.name} is low on stock!')),
-        );
-      }
+    int? quantity = int.tryParse(itemQuantity);
+    if (itemName.isNotEmpty && quantity != null && itemUnit.isNotEmpty) {
+      InventoryItem newItem = InventoryItem(
+        name: itemName,
+        quantity: quantity,
+        unit: itemUnit,
+        type: _itemType,
+      );
+      inventoryBox.add(newItem);
+      _clearInputFields();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter valid item details.')),
+      );
     }
+  }
+
+  // Method to clear input fields after adding an item
+  void _clearInputFields() {
+    _itemNameController.clear();
+    _itemQuantityController.clear();
+    _itemUnitController.clear();
+    _itemType = 'Consumable';
+  }
+
+  // Method to restock an existing item using its Hive key
+  void _restockItem(InventoryItem item, int additionalQuantity) {
+    item.quantity += additionalQuantity;
+    item.save(); // Update the item in Hive
+    setState(() {}); // Refresh the UI
+  }
+
+  // Filter and sort inventory items
+  List<InventoryItem> _getFilteredItems() {
+    List<InventoryItem> items = inventoryBox.values.toList();
+
+    // Filter by item type or low stock
+    if (_selectedType == 'Low Stock') {
+      items = items.where((item) => item.quantity <= 5).toList();
+    } else if (_selectedType != 'All') {
+      items = items.where((item) => item.type == _selectedType).toList();
+    }
+
+    items.sort((a, b) => b.key.compareTo(a.key));
+    return items;
   }
 
   @override
@@ -44,172 +92,200 @@ class _WarehouseStaffInventoryManagementPageState extends State<WarehouseStaffIn
         title: Text('Inventory Management'),
         backgroundColor: Color(0xFF08B797),
       ),
+      backgroundColor: Color(0xFFEEEDEA),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title for Inventory Items
               Text(
-                'Inventory List',
+                'Inventory Items',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              ListView.builder(
-                itemCount: inventoryItems.length,
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  return _buildInventoryItemCard(inventoryItems[index], index);
-                },
-              ),
-              SizedBox(height: 20),
+              // Scrollable Card for Inventory Items
+              Container(
+                height: 300,
+                child: ValueListenableBuilder(
+                  valueListenable: inventoryBox.listenable(),
+                  builder: (context, Box<InventoryItem> box, _) {
+                    List<InventoryItem> items = _getFilteredItems();
 
-              // Add Inventory Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to Add Inventory Item Page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddInventoryItemPage(
-                          onAddItem: _addInventoryItem,
-                        ),
-                      ),
+                    if (items.isEmpty) {
+                      return Center(child: Text('No items available'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return _buildInventoryItemCard(item);
+                      },
                     );
                   },
-                  child: Text('Add Inventory Item'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                  ),
                 ),
               ),
               SizedBox(height: 20),
-
-              // Check for low stock
-              Center(
-                child: ElevatedButton(
-                  onPressed: _showLowStockAlert,
-                  child: Text('Check Low Stock'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                  ),
-                ),
+              Text(
+                'Add New Item',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
+              _buildItemForm(),
             ],
           ),
         ),
       ),
+      // Floating Action Buttons for Filtering Options
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Consumable';
+              });
+            },
+            backgroundColor: _selectedType == 'Consumable' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.fastfood),
+            tooltip: 'Consumable',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Non-Consumable';
+              });
+            },
+            backgroundColor: _selectedType == 'Non-Consumable' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.build),
+            tooltip: 'Non-Consumable',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'All';
+              });
+            },
+            backgroundColor: _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.select_all),
+            tooltip: 'All',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Low Stock';
+              });
+            },
+            backgroundColor: _selectedType == 'Low Stock' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.warning),
+            tooltip: 'Low Stock',
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildInventoryItemCard(InventoryItem item, int index) {
+  // Method to build inventory item card with restock option
+  Widget _buildInventoryItemCard(InventoryItem item) {
+    final TextEditingController _restockController = TextEditingController();
+
     return Card(
       elevation: 2,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      child: ListTile(
+        title: Text('${item.name}, ${item.quantity}, ${item.unit}, ${item.type}'),
+        subtitle: Text('Quantity: ${item.quantity}, ${item.unit}'),
+        trailing: IconButton(
+          icon: Icon(Icons.add, color: Colors.green),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text('Restock ${item.name}'),
+                  content: TextField(
+                    controller: _restockController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: 'Additional Quantity'),
                   ),
-                  SizedBox(height: 5),
-                  Text('Quantity: ${item.quantity}'),
-                  Text('Min Stock Level: ${item.minStockLevel}'),
-                  Text('Expiration Date: ${item.expirationDate?.toLocal().toString().split(' ')[0] ?? 'N/A'}'),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () {
-                // Navigate to Edit Inventory Item Page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditInventoryItemPage(
-                      item: item,
-                      index: index,
-                      onEditItem: _editInventoryItem,
+                  actions: [
+                    TextButton(
+                      child: Text('Cancel'),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                  ),
+                    ElevatedButton(
+                      child: Text('Restock'),
+                      onPressed: () {
+                        int additionalQuantity = int.tryParse(_restockController.text) ?? 0;
+                        if (additionalQuantity > 0) {
+                          _restockItem(item, additionalQuantity);
+                        }
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
                 );
               },
-            ),
-            IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () {
-                _deleteInventoryItem(index);
-              },
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
-}
 
-class InventoryItem {
-  String name;
-  int quantity;
-  int minStockLevel;
-  DateTime? expirationDate;
-
-  InventoryItem({required this.name, required this.quantity, required this.minStockLevel, this.expirationDate});
-}
-
-// Placeholder for Add Inventory Item Page
-class AddInventoryItemPage extends StatelessWidget {
-  final Function(InventoryItem) onAddItem;
-
-  AddInventoryItemPage({required this.onAddItem});
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement form to add inventory item
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Inventory Item'),
-        backgroundColor: Color(0xFF08B797),
-      ),
-      body: Center(
-        child: Text('Form to add inventory item goes here.'),
-      ),
-    );
-  }
-}
-
-// Placeholder for Edit Inventory Item Page
-class EditInventoryItemPage extends StatelessWidget {
-  final InventoryItem item;
-  final int index;
-  final Function(int, InventoryItem) onEditItem;
-
-  EditInventoryItemPage({required this.item, required this.index, required this.onEditItem});
-
-  @override
-  Widget build(BuildContext context) {
-    // Implement form to edit inventory item
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit Inventory Item'),
-        backgroundColor: Color(0xFF08B797),
-      ),
-      body: Center(
-        child: Text('Form to edit inventory item goes here.'),
-      ),
+  // Form to add a new inventory item
+  Widget _buildItemForm() {
+    return Column(
+      children: [
+        TextField(
+          controller: _itemNameController,
+          decoration: InputDecoration(
+            labelText: 'Item Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _itemQuantityController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Item Quantity',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _itemUnitController,
+          decoration: InputDecoration(
+            labelText: 'Unit (e.g., kg, liters)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: _itemType,
+          items: ['Consumable', 'Non-Consumable']
+              .map((String type) => DropdownMenuItem(value: type, child: Text(type)))
+              .toList(),
+          onChanged: (newValue) {
+            setState(() {
+              _itemType = newValue!;
+            });
+          },
+          decoration: InputDecoration(
+            labelText: 'Item Type',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: _addItem,
+          child: Text('Add Item'),
+        ),
+      ],
     );
   }
 }

@@ -96,7 +96,7 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => WarehouseStaffInventoryManagementPage()),
+                  MaterialPageRoute(builder: (context) => InventoryManagementPage()),
                 );
               },
             ),
@@ -117,16 +117,6 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => WarehouseStaffEquipmentManagementPage()),
-                );
-              },
-            ),
-             ListTile(
-              leading: Icon(Icons.shopping_cart),
-              title: Text('Supplier & Vendor Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => WarehouseStaffSupplierVendorManagementPage()),
                 );
               },
             ),

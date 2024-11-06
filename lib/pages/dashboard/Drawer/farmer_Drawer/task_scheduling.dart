@@ -1,233 +1,209 @@
-import 'package:farm_system_inventory/models/task.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:table_calendar/table_calendar.dart';
 
-class TaskSchedulingPage extends StatefulWidget {
+class SupervisorTaskSchedulingPage extends StatefulWidget {
   @override
-  _TaskSchedulingPageState createState() => _TaskSchedulingPageState();
+  _SupervisorTaskSchedulingPageState createState() => _SupervisorTaskSchedulingPageState();
 }
 
-class _TaskSchedulingPageState extends State<TaskSchedulingPage> {
-  late Box<Task> taskBox;
-
-  @override
-  void initState() {
-    super.initState();
-    taskBox = Hive.box<Task>('tasksBox'); // Assuming 'tasksBox' is the name used in main.dart
-  }
+class _SupervisorTaskSchedulingPageState extends State<SupervisorTaskSchedulingPage> {
+  List<Map<String, dynamic>> tasks = [];
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _selectedDay = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task Scheduling'),
+        title: Row(
+          children: [
+            Icon(Icons.event_note, size: 28), // Task icon in AppBar
+            SizedBox(width: 8),
+            Text('Task Scheduling'),
+          ],
+        ),
         backgroundColor: Color(0xFF08B797),
       ),
-      backgroundColor: Color(0xFFEEEDEA),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 20),
-
-              // Task Assignment Section
-              Text(
-                'Task Assignment',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              ValueListenableBuilder(
-                valueListenable: taskBox.listenable(),
-                builder: (context, Box<Task> box, _) {
-                  if (box.isEmpty) {
-                    return Center(child: Text('No tasks available'));
-                  }
-                  return Column(
-                    children: box.values.map((task) => _buildTaskCard(task)).toList(),
-                  );
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _buildCalendar(),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _showAddTaskDialog(),
+              icon: Icon(Icons.add), // Add task icon for button
+              label: Text('Add New Task'),
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) {
+                  return _buildTaskCard(tasks[index]);
                 },
               ),
-              SizedBox(height: 20),
-
-              // Calendar View Section (Placeholder)
-              Text(
-                'Scheduled Tasks (Calendar View)',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Container(
-                height: 200,
-                color: Colors.grey[300],
-                child: Center(
-                  child: Text(
-                    'Calendar View Coming Soon!',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Notifications and Alerts Section (Static for now)
-              Text(
-                'Notifications & Alerts',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildNotificationCard('Upcoming Task', 'Planting scheduled for tomorrow'),
-              _buildNotificationCard('Alert', 'High-priority harvesting due next week'),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showTaskDialog(), // Add new task
-        backgroundColor: Color(0xFF08B797),
-        child: Icon(Icons.add),
       ),
     );
   }
 
-  // Method to build task card with a consistent width
-  Widget _buildTaskCard(Task task) {
-    return SizedBox(
-      width: double.infinity, // Ensures the card takes full width
-      child: Dismissible(
-        key: Key(task.key.toString()), // Use task key as unique identifier
-        direction: DismissDirection.endToStart,
-        background: Container(
-          color: Colors.red,
-          alignment: Alignment.centerRight,
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Icon(Icons.delete, color: Colors.white),
+  Widget _buildCalendar() {
+    return TableCalendar(
+      firstDay: DateTime.utc(2020, 1, 1),
+      lastDay: DateTime.utc(2030, 12, 31),
+      focusedDay: _selectedDay,
+      calendarFormat: _calendarFormat,
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      onDaySelected: (selectedDay, focusedDay) {
+        setState(() {
+          _selectedDay = selectedDay;
+        });
+      },
+      onFormatChanged: (format) {
+        if (_calendarFormat != format) {
+          setState(() {
+            _calendarFormat = format;
+          });
+        }
+      },
+    );
+  }
+
+  Widget _buildTaskCard(Map<String, dynamic> task) {
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: Icon(Icons.task_alt), // Task icon for each task item
+        title: Text(task['title']),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Assigned To: ${task['assignedTo']}'),
+            Text('Priority: ${task['priority']}'),
+            Text('Due Date: ${task['dueDate']}'),
+          ],
         ),
-        onDismissed: (_) {
-          task.delete(); // Delete task from Hive
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Task deleted')));
-        },
-        child: Card(
-          elevation: 2,
-          color: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.edit, color: Colors.blue), // Edit icon
+              onPressed: () => _showEditTaskDialog(task),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red), // Delete icon
+              onPressed: () => _deleteTask(task),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddTaskDialog() {
+    _showTaskDialog();
+  }
+
+  void _showEditTaskDialog(Map<String, dynamic> task) {
+    _showTaskDialog(task: task);
+  }
+
+  void _showTaskDialog({Map<String, dynamic>? task}) {
+    final titleController = TextEditingController(text: task?['title']);
+    final assignedToController = TextEditingController(text: task?['assignedTo']);
+    final priorityController = TextEditingController(text: task?['priority']);
+    final dueDateController = TextEditingController(text: task?['dueDate']);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(task == null ? 'Add New Task' : 'Edit Task'),
+          content: SingleChildScrollView(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  task.task,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(labelText: 'Task Title'),
                 ),
-                SizedBox(height: 5),
-                Text(task.description),
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Priority: ${task.priority}',
-                      style: TextStyle(color: Colors.orange),
-                    ),
-                    TextButton(
-                      onPressed: () => _showTaskDialog(task: task), // Edit task
-                      child: Text(
-                        'Edit',
-                        style: TextStyle(color: Color(0xFF08B797)),
-                      ),
-                    ),
-                  ],
+                TextField(
+                  controller: assignedToController,
+                  decoration: InputDecoration(labelText: 'Assigned To'),
+                ),
+                TextField(
+                  controller: priorityController,
+                  decoration: InputDecoration(labelText: 'Priority (High/Medium/Low)'),
+                ),
+                TextField(
+                  controller: dueDateController,
+                  decoration: InputDecoration(labelText: 'Due Date'),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // Method to build notification card with a consistent width
-  Widget _buildNotificationCard(String title, String message) {
-    return SizedBox(
-      width: double.infinity, // Ensures the card takes full width
-      child: Card(
-        elevation: 2,
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 5),
-              Text(message),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Show dialog to create or edit a task
-  void _showTaskDialog({Task? task}) {
-    final TextEditingController taskController = TextEditingController(text: task?.task ?? '');
-    final TextEditingController descriptionController = TextEditingController(text: task?.description ?? '');
-    final TextEditingController priorityController = TextEditingController(text: task?.priority ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(task == null ? 'Add New Task' : 'Edit Task'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: taskController,
-              decoration: InputDecoration(labelText: 'Task Name'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (task == null) {
+                  _addTask(
+                    titleController.text,
+                    assignedToController.text,
+                    priorityController.text,
+                    dueDateController.text,
+                  );
+                } else {
+                  _updateTask(
+                    task,
+                    titleController.text,
+                    assignedToController.text,
+                    priorityController.text,
+                    dueDateController.text,
+                  );
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text(task == null ? 'Add' : 'Update'),
             ),
-            TextField(
-              controller: descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
-            ),
-            TextField(
-              controller: priorityController,
-              decoration: InputDecoration(labelText: 'Priority'),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newTask = Task(
-                task: taskController.text,
-                description: descriptionController.text,
-                priority: priorityController.text,
-              );
-
-              if (task == null) {
-                // Add new task
-                taskBox.add(newTask);
-              } else {
-                // Update existing task
-                task.task = taskController.text;
-                task.description = descriptionController.text;
-                task.priority = priorityController.text;
-                task.save();
-              }
-
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            child: Text(task == null ? 'Add' : 'Save'),
-          ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  void _addTask(String title, String assignedTo, String priority, String dueDate) {
+    setState(() {
+      tasks.add({
+        'title': title,
+        'assignedTo': assignedTo,
+        'priority': priority,
+        'dueDate': dueDate,
+      });
+    });
+  }
+
+  void _updateTask(Map<String, dynamic> task, String title, String assignedTo, String priority, String dueDate) {
+    setState(() {
+      task['title'] = title;
+      task['assignedTo'] = assignedTo;
+      task['priority'] = priority;
+      task['dueDate'] = dueDate;
+    });
+  }
+
+  void _deleteTask(Map<String, dynamic> task) {
+    setState(() {
+      tasks.remove(task);
+    });
   }
 }

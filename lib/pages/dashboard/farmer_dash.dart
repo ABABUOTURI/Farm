@@ -134,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
             _drawerListTile(Icons.agriculture, 'Crop & Livestock Management', CropLivestockManagementPage()),
             _drawerListTile(Icons.shopping_cart, 'Supplier & Vendor Management', SupplierVendorManagementPage()),
             _drawerListTile(Icons.list, 'Inventory Management', InventoryManagementPage()),
-            _drawerListTile(Icons.schedule, 'Task Scheduling', TaskSchedulingPage()),
+            _drawerListTile(Icons.schedule, 'Task Scheduling', SupervisorTaskSchedulingPage()),
             _drawerListTile(Icons.report, 'Reporting', ReportingPage()),
             //_drawerListTile(Icons.notifications, 'Notifications', NotificationCenterPage()),
             //_drawerListTile(Icons.settings, 'Settings', SettingsPage()),
