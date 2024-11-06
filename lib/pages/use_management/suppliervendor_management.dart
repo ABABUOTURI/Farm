@@ -1,5 +1,6 @@
-// supplier_vendor_management_page.dart
+import 'package:farm_system_inventory/models/supplier_model.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
 class SupplierVendorManagementPage extends StatefulWidget {
   @override
@@ -7,40 +8,98 @@ class SupplierVendorManagementPage extends StatefulWidget {
 }
 
 class _SupplierVendorManagementPageState extends State<SupplierVendorManagementPage> {
-  // Dummy data for demonstration purposes
-  List<Map<String, dynamic>> suppliers = [
-    {
-      'name': 'ABC Supplies',
-      'contact': 'John Doe - +1234567890',
-      'products': 'Fertilizers, Seeds',
-      'performance': 'On-Time Delivery: 90%, Quality: Good',
-    },
-    {
-      'name': 'XYZ Equipment',
-      'contact': 'Jane Smith - +9876543210',
-      'products': 'Tractors, Irrigation Equipment',
-      'performance': 'On-Time Delivery: 85%, Quality: Excellent',
-    },
-  ];
+  late Box<Supplier> supplierBox;
 
-  // Method to add a new supplier
-  void _addSupplier() {
-    // Example to add a new supplier (In real scenario, use a form or dialog to get user input)
-    setState(() {
-      suppliers.add({
-        'name': 'New Supplier',
-        'contact': 'New Contact - +1122334455',
-        'products': 'New Products',
-        'performance': 'On-Time Delivery: 80%, Quality: Average',
-      });
-    });
+  @override
+  void initState() {
+    super.initState();
+    _initializeHive();
+  }
+
+  Future<void> _initializeHive() async {
+    supplierBox = await Hive.openBox<Supplier>('supplierBox');
+    setState(() {}); // Refresh the UI once box is ready
+  }
+
+  // Method to show the dialog for adding a new supplier
+  void _showAddSupplierDialog() {
+    String name = '';
+    String contact = '';
+    String products = '';
+    String performance = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Supplier'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: InputDecoration(labelText: 'Name'),
+                  onChanged: (value) {
+                    name = value;
+                  },
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'Contact'),
+                  onChanged: (value) {
+                    contact = value;
+                  },
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'Products'),
+                  onChanged: (value) {
+                    products = value;
+                  },
+                ),
+                TextField(
+                  decoration: InputDecoration(labelText: 'Performance'),
+                  onChanged: (value) {
+                    performance = value;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: Text('Add Supplier'),
+              onPressed: () {
+                _addSupplier(name, contact, products, performance);
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Method to add a new supplier to Hive
+  void _addSupplier(String name, String contact, String products, String performance) async {
+    Supplier newSupplier = Supplier(
+      name: name,
+      contact: contact,
+      products: products,
+      performance: performance,
+    );
+    await supplierBox.add(newSupplier);
+    setState(() {}); // Refresh the UI
   }
 
   // Method to delete a supplier
-  void _deleteSupplier(int index) {
-    setState(() {
-      suppliers.removeAt(index);
-    });
+  void _deleteSupplier(int index) async {
+    await supplierBox.deleteAt(index);
+    setState(() {}); // Refresh the UI
   }
 
   @override
@@ -51,51 +110,48 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
         backgroundColor: Color(0xFF08B797),
       ),
       backgroundColor: Color(0xFFEEEDEA),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
-
-              // Supplier List Section
-              Text(
-                'Suppliers & Vendors',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-
-              // Displaying list of suppliers
-              ...suppliers.asMap().entries.map((entry) {
-                int index = entry.key;
-                Map<String, dynamic> supplier = entry.value;
-                return _buildSupplierCard(supplier, index);
-              }).toList(),
-
-              SizedBox(height: 20),
-
-              // Add Supplier Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: _addSupplier,
-                  child: Text('Add Supplier'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                  ),
+      body: supplierBox.isOpen
+          ? SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 20),
+                    Text(
+                      'Suppliers & Vendors',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 10),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: supplierBox.length,
+                      itemBuilder: (context, index) {
+                        Supplier supplier = supplierBox.getAt(index)!;
+                        return _buildSupplierCard(supplier, index);
+                      },
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _showAddSupplierDialog,
+                        child: Text('Add Supplier'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF08B797),
+                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          textStyle: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : Center(child: CircularProgressIndicator()), // Show loading indicator until box is ready
     );
   }
 
-  // Method to build supplier card
-  Widget _buildSupplierCard(Map<String, dynamic> supplier, int index) {
+  Widget _buildSupplierCard(Supplier supplier, int index) {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -105,18 +161,16 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              supplier['name'],
+              supplier.name,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 5),
-            Text('Contact: ${supplier['contact']}', style: TextStyle(fontSize: 16)),
+            Text('Contact: ${supplier.contact}', style: TextStyle(fontSize: 16)),
             SizedBox(height: 5),
-            Text('Products: ${supplier['products']}', style: TextStyle(fontSize: 16)),
+            Text('Products: ${supplier.products}', style: TextStyle(fontSize: 16)),
             SizedBox(height: 5),
-            Text('Performance: ${supplier['performance']}', style: TextStyle(fontSize: 16)),
+            Text('Performance: ${supplier.performance}', style: TextStyle(fontSize: 16)),
             SizedBox(height: 10),
-
-            // Delete Supplier Button
             Align(
               alignment: Alignment.centerRight,
               child: IconButton(

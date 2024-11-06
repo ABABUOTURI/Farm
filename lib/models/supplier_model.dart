@@ -16,5 +16,7 @@ class Supplier {
   @HiveField(3)
   final String performance;
 
+  var email;
+
   Supplier({required this.name, required this.contact, required this.products, required this.performance});
 }

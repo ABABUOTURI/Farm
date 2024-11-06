@@ -1,7 +1,35 @@
-// reporting_page.dart
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
-class ReportingPage extends StatelessWidget {
+class ReportingPage extends StatefulWidget {
+  @override
+  _ReportingPageState createState() => _ReportingPageState();
+}
+
+class _ReportingPageState extends State<ReportingPage> {
+  Map<String, String> reportData = {}; // Store report data
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReportData();
+  }
+
+  // Method to fetch report data from Hive
+  Future<void> _fetchReportData() async {
+    var box = await Hive.openBox('reportBox');
+    setState(() {
+      reportData = {
+        'Usage Report': box.get('usageReport', defaultValue: 'No data available'),
+        'Low Stock Report': box.get('lowStockReport', defaultValue: 'No data available'),
+        'Maintenance History': box.get('maintenanceHistory', defaultValue: 'No data available'),
+        'Equipment Usage': box.get('equipmentUsage', defaultValue: 'No data available'),
+        'Task Overview': box.get('taskOverview', defaultValue: 'No data available'),
+        'Task Performance': box.get('taskPerformance', defaultValue: 'No data available'),
+      };
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,7 +44,7 @@ class ReportingPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
+              SizedBox(height: 20),
 
               // Inventory Reports Section
               Text(
@@ -24,8 +52,10 @@ class ReportingPage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildReportCard('Usage Report', 'View inventory usage details'),
-              _buildReportCard('Low Stock Report', 'Items with low stock levels'),
+              _buildReportCard(
+                  'Usage Report', reportData['Usage Report'] ?? 'No data available'),
+              _buildReportCard(
+                  'Low Stock Report', reportData['Low Stock Report'] ?? 'No data available'),
               SizedBox(height: 20),
 
               // Equipment Reports Section
@@ -34,8 +64,10 @@ class ReportingPage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildReportCard('Maintenance History', 'View maintenance history of equipment'),
-              _buildReportCard('Equipment Usage', 'Track equipment usage details'),
+              _buildReportCard(
+                  'Maintenance History', reportData['Maintenance History'] ?? 'No data available'),
+              _buildReportCard(
+                  'Equipment Usage', reportData['Equipment Usage'] ?? 'No data available'),
               SizedBox(height: 20),
 
               // Task Completion Reports Section
@@ -44,15 +76,16 @@ class ReportingPage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildReportCard('Task Overview', 'Details on completed and pending tasks'),
-              _buildReportCard('Task Performance', 'Analyze task completion rates'),
+              _buildReportCard(
+                  'Task Overview', reportData['Task Overview'] ?? 'No data available'),
+              _buildReportCard(
+                  'Task Performance', reportData['Task Performance'] ?? 'No data available'),
               SizedBox(height: 20),
 
               // Export Reports Section
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    // Handle export reports action
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Export reports feature coming soon!')),
                     );
@@ -72,8 +105,8 @@ class ReportingPage extends StatelessWidget {
     );
   }
 
-  // Method to build report card
-  Widget _buildReportCard(String title, String description) {
+  // Method to build report card with scrollable content if necessary
+  Widget _buildReportCard(String title, String content) {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -87,19 +120,22 @@ class ReportingPage extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 5),
-            Text(
-              description,
-              style: TextStyle(fontSize: 14),
+            Container(
+              height: 100, // Height to make the content scrollable if necessary
+              child: SingleChildScrollView(
+                child: Text(
+                  content,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
             ),
-            SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () {
-                  // Handle viewing the detailed report
-                  //ScaffoldMessenger.of(context).showSnackBar(
-                   // SnackBar(content: Text('$title report coming soon!')),
-                  //);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('$title report coming soon!')),
+                  );
                 },
                 child: Text(
                   'View Details',

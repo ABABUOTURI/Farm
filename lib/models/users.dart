@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 
 part 'users.g.dart'; // This will be generated later
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 4)
 class User extends HiveObject {
   @HiveField(0)
   String name;

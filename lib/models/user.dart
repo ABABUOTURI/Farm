@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'user.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 3) // Ensure this typeId is unique across your app
 class User extends HiveObject {
   @HiveField(0)
   String firstName;
@@ -28,6 +28,9 @@ class User extends HiveObject {
   @HiveField(7)
   String location;
 
+  @HiveField(8)
+  String name; // Combines the "name" field from the second model
+  
   User({
     required this.firstName,
     required this.lastName,
@@ -36,8 +39,7 @@ class User extends HiveObject {
     required this.password,
     required this.role,
     required this.farmName,
-    required this.location, required String name,
+    required this.location,
+    required this.name,
   });
-
-  String? get name => null;
 }

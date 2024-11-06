@@ -3,11 +3,10 @@ import 'package:hive/hive.dart';
 import '../use_management/croplivestock_management.dart';
 import '../use_management/suppliervendor_management.dart';
 import '../use_management/user_manage_farmer.dart';
+import 'Drawer/farmer_Drawer/FarmManager.dart';
 import 'Drawer/farmer_Drawer/inventory_management.dart';
 import 'Drawer/farmer_Drawer/my_profile.dart';
-import 'Drawer/farmer_Drawer/notifications.dart';
 import 'Drawer/farmer_Drawer/reporting.dart';
-import 'Drawer/farmer_Drawer/settings.dart';
 import 'Drawer/farmer_Drawer/task_scheduling.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -16,19 +15,46 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String? userName; // Initialize userName as nullable
+  String? userName;
+  Map<String, String>? metricsData;
+  Map<String, String>? alertsData;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserName(); // Fetch the user's name from Hive
+    _fetchUserName();
+    _fetchMetricsData();
+    _fetchAlertsData();
   }
 
-  // Method to fetch the user's name from Hive
   void _fetchUserName() async {
-    var box = await Hive.openBox('userBox'); // Open the Hive box where user data is stored
+    var box = await Hive.openBox('userBox');
     setState(() {
-      userName = box.get('userName'); // Fetch the username from the Hive database
+      userName = box.get('userName') ?? 'Guest';
+    });
+  }
+
+  void _fetchMetricsData() async {
+    // Fetch the data from Hive or any other source and update the metricsData map
+    // Example data population, replace this with actual data fetching logic
+    setState(() {
+      metricsData = {
+        'inventory': '100 Items',
+        'taskCompletionRate': '85%',
+        'upcomingTasks': '5 Tasks'
+      };
+    });
+  }
+
+  void _fetchAlertsData() async {
+    // Fetch the data from Hive or any other source and update the alertsData map
+    // Example data population, replace this with actual data fetching logic
+    setState(() {
+      alertsData = {
+        'lowStock': 'Only 10 items left!',
+        'overdueTasks': '2 tasks overdue!',
+        'maintenanceDue': 'Equipment maintenance is due.'
+      };
     });
   }
 
@@ -38,8 +64,8 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            SizedBox(width: 8), // Space between icon and text
-            Text('Welcome, ${userName ?? 'Guest'}!'), // Show welcome message or "Guest" if null
+            SizedBox(width: 8),
+            Text('Welcome, ${userName ?? 'Guest'}!'),
           ],
         ),
         backgroundColor: Color(0xFF08B797),
@@ -57,7 +83,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
+              SizedBox(height: 20),
 
               // Key Metrics Section
               Text(
@@ -66,11 +92,11 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               SizedBox(height: 10),
               _buildMetricsCard(
-                  'Current Inventory Levels', '100 Items', Icons.inventory),
+                  'Current Inventory Levels', metricsData?['inventory'] ?? 'No data available', Icons.inventory),
               _buildMetricsCard(
-                  'Task Completion Rate', '85%', Icons.check_circle),
+                  'Task Completion Rate', metricsData?['taskCompletionRate'] ?? 'No data available', Icons.check_circle),
               _buildMetricsCard(
-                  'Upcoming Tasks', '5 Tasks', Icons.calendar_today),
+                  'Upcoming Tasks', metricsData?['upcomingTasks'] ?? 'No data available', Icons.calendar_today),
               SizedBox(height: 20),
 
               // Alerts Section
@@ -79,12 +105,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildAlertCard('Low Stock Alert', 'Only 10 items left!',
-                  Icons.warning, Colors.orange),
-              _buildAlertCard(
-                  'Overdue Tasks', '2 tasks overdue!', Icons.error, Colors.red),
-              _buildAlertCard('Maintenance Due',
-                  'Equipment maintenance is due.', Icons.build, Colors.red),
+              _buildAlertCard('Low Stock Alert', alertsData?['lowStock'] ?? 'No alerts', Icons.warning, Colors.orange),
+              _buildAlertCard('Overdue Tasks', alertsData?['overdueTasks'] ?? 'No alerts', Icons.error, Colors.red),
+              _buildAlertCard('Maintenance Due', alertsData?['maintenanceDue'] ?? 'No alerts', Icons.build, Colors.red),
               SizedBox(height: 20),
             ],
           ),
@@ -106,112 +129,36 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
             ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('My Profile'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MyProfilePage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.manage_accounts),
-              title: Text('User Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => UserManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.agriculture),
-              title: Text('Crop & Livestock Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => CropLivestockManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.shopping_cart),
-              title: Text('Supplier & Vendor Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => SupplierVendorManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.list),
-              title: Text('Inventory Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InventoryManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.schedule),
-              title: Text('Task Scheduling'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TaskSchedulingPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.report),
-              title: Text('Reporting'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReportingPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.notifications),
-              title: Text('Notifications'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => NotificationCenterPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()),
-                );
-              },
-            ),
+            _drawerListTile(Icons.person, 'My Profile', MyProfilePage()),
+            _drawerListTile(Icons.manage_accounts, 'User Management', UserManagementPage()),
+            _drawerListTile(Icons.agriculture, 'Crop & Livestock Management', CropLivestockManagementPage()),
+            _drawerListTile(Icons.shopping_cart, 'Supplier & Vendor Management', SupplierVendorManagementPage()),
+            _drawerListTile(Icons.list, 'Inventory Management', InventoryManagementPage()),
+            _drawerListTile(Icons.schedule, 'Task Scheduling', TaskSchedulingPage()),
+            _drawerListTile(Icons.report, 'Reporting', ReportingPage()),
+            //_drawerListTile(Icons.notifications, 'Notifications', NotificationCenterPage()),
+            //_drawerListTile(Icons.settings, 'Settings', SettingsPage()),
+            _drawerListTile(Icons.store, 'Farm Manager', FarmManagerPage()),
           ],
         ),
       ),
     );
   }
 
-  // Method to open sidebar
+  ListTile _drawerListTile(IconData icon, String title, Widget page) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+      },
+    );
+  }
+
   void _openSidebar(BuildContext context) {
     Scaffold.of(context).openDrawer();
   }
 
-  // Method to build metrics card
   Widget _buildMetricsCard(String title, String value, IconData icon) {
     return Card(
       elevation: 2,
@@ -243,9 +190,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // Method to build alert card
-  Widget _buildAlertCard(
-      String title, String message, IconData icon, Color color) {
+  Widget _buildAlertCard(String title, String message, IconData icon, Color color) {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -260,8 +205,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 5),
                   Text(message, style: TextStyle(fontSize: 16)),
                 ],

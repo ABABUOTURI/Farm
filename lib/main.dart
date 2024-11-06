@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
+import 'models/inventory_item.dart';
 import 'models/supplier_model.dart';
 import 'models/user.dart';
+import 'models/task.dart';
+import 'models/notification.dart';
 import 'pages/auth/loader.dart';
-import 'pages/dashboard/farmer_dash.dart';
-import 'pages/dashboard/supervisor_dash.dart';
-import 'pages/dashboard/warehouse_dash.dart';
 
 void main() async {
-  // Initialize Hive
+  // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  Hive.registerAdapter(UserAdapter());
-  //Hive.registerAdapter(SupplierAdapter());
   
-  // Open a Hive box
-  await Hive.openBox<User>('usersBox');
-  //await Hive.openBox<Supplier>('suppliers');
+  // Initialize Hive
+  await Hive.initFlutter();
 
+  // Register Hive adapters for each model
+  Hive.registerAdapter(UserAdapter());
+  Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(NotificationModelAdapter());
+  Hive.registerAdapter(SupplierAdapter());
+  Hive.registerAdapter(InventoryItemAdapter()); // Register InventoryItem adapter
+
+  // Open necessary Hive boxes asynchronously
+  await Future.wait([
+    Hive.openBox<User>('usersBox'),
+    Hive.openBox<Task>('tasksBox'),
+    Hive.openBox<NotificationModel>('notificationsBox'),
+    Hive.openBox<Supplier>('suppliers'),
+    Hive.openBox<InventoryItem>('inventoryBox'), // Open inventoryBox
+  ]);
+
+  // Set up a global error handler
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    // Additional logging or handling can be added here if needed
+  };
 
   runApp(const FarmInventoryApp());
 }
@@ -30,80 +46,12 @@ class FarmInventoryApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Farm Inventory System',
-      debugShowCheckedModeBanner: false, // Remove the debug banner
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      // Set the LoaderPage as the initial home page
-      home: LoaderPage(),
-      routes: {
-        '/farmer-dashboard': (context) =>  DashboardPage(),
-        '/supervisor-dashboard': (context) => SupervisorDashboardPage(),
-        '/warehouse-dashboard': (context) => WarehouseStaffDashboardPage(),
-      },
+      home: LoaderPage(),  // LoaderPage as the initial screen
     );
   }
-}
-
-class InventoryPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventory Management'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'Manage your farm inventory here',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Example Registration Function to Store User Data Using Hive
-void _registerUser(BuildContext context, String firstName, String lastName, String email, String phoneNumber, String password, String role, String location, String farmName) async {
-  var userBox = Hive.box('userBox');
-
-  // Store user details in Hive
-  userBox.put('firstName', firstName);
-  userBox.put('lastName', lastName);
-  userBox.put('email', email);
-  userBox.put('phoneNumber', phoneNumber);
-  userBox.put('password', password);
-  userBox.put('role', role);
-  userBox.put('location', location);
-  userBox.put('farmName', farmName);
-
-  // Show success message
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text('Registration Successful'),
-        content: Text('Your account has been created.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('OK'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-@override
-void dispose() {
-  Hive.close(); // Close all opened boxes
-  //super.dispose();
 }

@@ -8,7 +8,7 @@ part of 'user.dart';
 
 class UserAdapter extends TypeAdapter<User> {
   @override
-  final int typeId = 0;
+  final int typeId = 3;
 
   @override
   User read(BinaryReader reader) {
@@ -24,14 +24,15 @@ class UserAdapter extends TypeAdapter<User> {
       password: fields[4] as String,
       role: fields[5] as String,
       farmName: fields[6] as String,
-      location: fields[7] as String, name: '',
+      location: fields[7] as String,
+      name: fields[8] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, User obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.firstName)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class UserAdapter extends TypeAdapter<User> {
       ..writeByte(6)
       ..write(obj.farmName)
       ..writeByte(7)
-      ..write(obj.location);
+      ..write(obj.location)
+      ..writeByte(8)
+      ..write(obj.name);
   }
 
   @override
