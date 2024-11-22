@@ -19,7 +19,7 @@ class SupervisorDashboardPage extends StatefulWidget {
 
 class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
   // Dummy data for demonstration purposes
-  String userName = 'Jane Smith'; // Replace with dynamic user name
+  String userName = ''; // Replace with dynamic user name
 
   @override
   Widget build(BuildContext context) {

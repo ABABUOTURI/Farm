@@ -27,6 +27,7 @@ class _DashboardPageState extends State<DashboardPage> {
     _fetchAlertsData();
   }
 
+  // Fetch the user name from Hive
   void _fetchUserName() async {
     var box = await Hive.openBox('userBox');
     setState(() {
@@ -34,26 +35,26 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
+  // Fetch the metrics data from Hive or any other data source
   void _fetchMetricsData() async {
-    // Fetch the data from Hive or any other source and update the metricsData map
-    // Example data population, replace this with actual data fetching logic
+    var metricsBox = await Hive.openBox('metricsBox');
     setState(() {
       metricsData = {
-        'inventory': '100 Items',
-        'taskCompletionRate': '85%',
-        'upcomingTasks': '5 Tasks'
+        'inventory': metricsBox.get('inventory') ?? 'No data available',
+        'taskCompletionRate': metricsBox.get('taskCompletionRate') ?? 'No data available',
+        'upcomingTasks': metricsBox.get('upcomingTasks') ?? 'No data available',
       };
     });
   }
 
+  // Fetch the alerts data from Hive or any other data source
   void _fetchAlertsData() async {
-    // Fetch the data from Hive or any other source and update the alertsData map
-    // Example data population, replace this with actual data fetching logic
+    var alertsBox = await Hive.openBox('alertsBox');
     setState(() {
       alertsData = {
-        'lowStock': 'Only 10 items left!',
-        'overdueTasks': '2 tasks overdue!',
-        'maintenanceDue': 'Equipment maintenance is due.'
+        'lowStock': alertsBox.get('lowStock') ?? 'No alerts',
+        'overdueTasks': alertsBox.get('overdueTasks') ?? 'No alerts',
+        'maintenanceDue': alertsBox.get('maintenanceDue') ?? 'No alerts',
       };
     });
   }
@@ -145,6 +146,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // Drawer list tile for navigation
   ListTile _drawerListTile(IconData icon, String title, Widget page) {
     return ListTile(
       leading: Icon(icon),
@@ -159,6 +161,7 @@ class _DashboardPageState extends State<DashboardPage> {
     Scaffold.of(context).openDrawer();
   }
 
+  // Build the metrics card
   Widget _buildMetricsCard(String title, String value, IconData icon) {
     return Card(
       elevation: 2,
@@ -190,6 +193,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  // Build the alert card
   Widget _buildAlertCard(String title, String message, IconData icon, Color color) {
     return Card(
       elevation: 2,

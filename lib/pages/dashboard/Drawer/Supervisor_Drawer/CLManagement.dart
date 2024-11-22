@@ -12,6 +12,10 @@ class _SupervisorCropAndLivestockManagementPageState
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  // Sample data for crops and livestock
+  List<String> crops = ['Maize', 'Wheat', 'Rice'];
+  List<String> livestock = ['Cattle', 'Goats', 'Poultry'];
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +76,7 @@ class _SupervisorCropAndLivestockManagementPageState
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
+              ..._buildEditableList('Crops', crops, _editCrop),
               _buildManagementCard(
                   'Track Crop Types',
                   'Monitor different crop types on the farm',
@@ -95,6 +100,7 @@ class _SupervisorCropAndLivestockManagementPageState
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
+              ..._buildEditableList('Livestock', livestock, _editLivestock),
               _buildManagementCard(
                   'Track Livestock Details',
                   'Monitor livestock breed, health status, and more',
@@ -147,6 +153,82 @@ class _SupervisorCropAndLivestockManagementPageState
         ),
       ),
     );
+  }
+
+  // Builds an editable list of items (Crops or Livestock)
+  List<Widget> _buildEditableList(
+      String title, List<String> items, Function(String, int) onEdit) {
+    return [
+      Text(
+        title,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+      SizedBox(height: 10),
+      ...items.asMap().entries.map((entry) {
+        int index = entry.key;
+        String value = entry.value;
+        return Card(
+          elevation: 2,
+          color: Colors.white,
+          child: ListTile(
+            leading: Icon(Icons.edit, size: 40, color: Color(0xFF08B797)),
+            title: Text(value,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            trailing: IconButton(
+              icon: Icon(Icons.arrow_forward),
+              onPressed: () {
+                _showEditDialog(title, value, index, onEdit);
+              },
+            ),
+          ),
+        );
+      }).toList(),
+    ];
+  }
+
+  void _showEditDialog(
+      String title, String value, int index, Function(String, int) onEdit) {
+    TextEditingController controller = TextEditingController(text: value);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit $title'),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(hintText: 'Enter new $title'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                onEdit(controller.text, index);
+                Navigator.pop(context);
+              },
+              child: Text('Save'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Edit functions for crops and livestock
+  void _editCrop(String newCrop, int index) {
+    setState(() {
+      crops[index] = newCrop;
+    });
+  }
+
+  void _editLivestock(String newLivestock, int index) {
+    setState(() {
+      livestock[index] = newLivestock;
+    });
   }
 
   Widget _buildManagementCard(

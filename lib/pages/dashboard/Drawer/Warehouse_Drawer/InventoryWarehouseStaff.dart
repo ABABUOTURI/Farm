@@ -39,7 +39,11 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
     String itemUnit = _itemUnitController.text.trim();
 
     int? quantity = int.tryParse(itemQuantity);
-    if (itemName.isNotEmpty && quantity != null && itemUnit.isNotEmpty) {
+
+    // Only validate unit if the item type is 'Consumable'
+    bool isConsumable = _itemType == 'Consumable';
+
+    if (itemName.isNotEmpty && quantity != null && (isConsumable ? itemUnit.isNotEmpty : true)) {
       InventoryItem newItem = InventoryItem(
         name: itemName,
         quantity: quantity,
@@ -49,8 +53,9 @@ class _InventoryManagementPageState extends State<InventoryManagementPage> {
       inventoryBox.add(newItem);
       _clearInputFields();
     } else {
+      // Provide an appropriate error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter valid item details.')),
+        SnackBar(content: Text('Please enter valid item details. Unit is required for consumable items.')),
       );
     }
   }
