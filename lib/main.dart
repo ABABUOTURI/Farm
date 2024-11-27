@@ -1,3 +1,4 @@
+import 'package:farm_system_inventory/models/equipment.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/inventory_item.dart';
@@ -5,35 +6,37 @@ import 'models/supplier_model.dart';
 import 'models/user.dart';
 import 'models/task.dart';
 import 'models/notification.dart';
-import 'pages/auth/loader.dart';
+import 'pages/auth/loader.dart'; // Your loader page
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Hive
+
+  // Initialize Hive and register all adapters
   await Hive.initFlutter();
 
-  // Register Hive adapters for each model
+  // Register adapters
   Hive.registerAdapter(UserAdapter());
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(NotificationModelAdapter());
   Hive.registerAdapter(SupplierAdapter());
-  Hive.registerAdapter(InventoryItemAdapter()); // Register InventoryItem adapter
+  Hive.registerAdapter(InventoryItemAdapter());
+  Hive.registerAdapter(EquipmentAdapter());
 
-  // Open necessary Hive boxes asynchronously
+  // Open Hive boxes asynchronously
   await Future.wait([
     Hive.openBox<User>('usersBox'),
     Hive.openBox<Task>('tasksBox'),
     Hive.openBox<NotificationModel>('notificationsBox'),
-    Hive.openBox<Supplier>('suppliers'),
-    Hive.openBox<InventoryItem>('inventoryBox'), // Open inventoryBox
+    Hive.openBox<Supplier>('suppliersBox'),
+    Hive.openBox<InventoryItem>('inventoryBox'),
+    Hive.openBox<Equipment>('equipmentBox'),
   ]);
 
-  // Set up a global error handler
+  // Set up a global error handler for Flutter errors
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
-    // Additional logging or handling can be added here if needed
+    // Handle errors gracefully here (e.g., logging or custom error messages)
   };
 
   runApp(const FarmInventoryApp());
@@ -48,10 +51,10 @@ class FarmInventoryApp extends StatelessWidget {
       title: 'Farm Inventory System',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        primarySwatch: Colors.green,
         useMaterial3: true,
       ),
-      home: LoaderPage(),  // LoaderPage as the initial screen
+      home:  LoaderPage(), // Display a loader page for authentication
     );
   }
 }

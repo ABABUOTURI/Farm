@@ -17,7 +17,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
     'Farm Manager',
     'Supervisor',
     'Warehouse Staff',
-    'Cooperative Member',
   ];
 
   // Controllers for form fields
