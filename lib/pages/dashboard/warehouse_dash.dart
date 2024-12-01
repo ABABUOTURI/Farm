@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'Drawer/Warehouse_Drawer/EquipmentWarehouse.dart';
 import 'Drawer/Warehouse_Drawer/InventoryWarehouseStaff.dart';
-import 'Drawer/Warehouse_Drawer/MyprofileWarehouseStaff.dart';
 import 'Drawer/Warehouse_Drawer/NotificationWarehouseStaff.dart';
-import 'Drawer/Warehouse_Drawer/SupplierVendorWarehouseStaff.dart';
 import 'Drawer/Warehouse_Drawer/TaskWarehouseStaff.dart';
 
 class WarehouseStaffDashboardPage extends StatefulWidget {
@@ -13,35 +10,6 @@ class WarehouseStaffDashboardPage extends StatefulWidget {
 }
 
 class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPage> {
-  String userName = ''; // Replace with dynamic user name from Hive
-  String inventoryLevel = ''; // Replace with data from Hive
-  String taskCompletionRate = ''; // Replace with data from Hive
-  String upcomingTasks = ''; // Replace with data from Hive
-  String lowStockAlert = ''; // Replace with data from Hive
-  String overdueTaskAlert = ''; // Replace with data from Hive
-  String maintenanceAlert = ''; // Replace with data from Hive
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData(); // Load data from Hive
-  }
-
-  // Fetch data from Hive
-  void _loadData() async {
-    var box = await Hive.openBox('warehouseData');
-
-    setState(() {
-      userName = box.get('userName', defaultValue: 'Warehouse Staff');
-      inventoryLevel = box.get('inventoryLevel', defaultValue: 'No data available');
-      taskCompletionRate = box.get('taskCompletionRate', defaultValue: 'No data available');
-      upcomingTasks = box.get('upcomingTasks', defaultValue: 'No tasks available');
-      lowStockAlert = box.get('lowStockAlert', defaultValue: 'No alerts available');
-      overdueTaskAlert = box.get('overdueTaskAlert', defaultValue: 'No alerts available');
-      maintenanceAlert = box.get('maintenanceAlert', defaultValue: 'No alerts available');
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,11 +17,10 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
         title: Row(
           children: [
             SizedBox(width: 8),
-            Text('Welcome, $userName!'),
+            Text('Warehouse Staff Dashboard'),
           ],
         ),
         backgroundColor: Color(0xFF08B797),
-        actions: [],
       ),
       backgroundColor: Color(0xFFEEEDEA),
       body: SingleChildScrollView(
@@ -64,15 +31,27 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
             children: [
               SizedBox(height: 20),
 
+              // Educational Content Section
+              Text(
+                'Welcome to the Warehouse Dashboard',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'This dashboard provides an overview of warehouse operations, including inventory management, task scheduling, equipment maintenance, and more. Use this section to monitor key metrics and stay up-to-date with important alerts.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 20),
+
               // Key Metrics Section
               Text(
                 'Key Metrics',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildMetricCard('Current Inventory Levels', inventoryLevel, Icons.inventory),
-              _buildMetricCard('Task Completion Rate', taskCompletionRate, Icons.check_circle),
-              _buildMetricCard('Upcoming Tasks', upcomingTasks, Icons.event),
+              _buildMetricCard('Current Inventory Levels', 'This section helps track the availability of items in the warehouse. Ensure that inventory is properly stocked to meet demand.', Icons.inventory),
+              _buildMetricCard('Task Completion Rate', 'Track the progress of tasks assigned to the warehouse team. This metric helps monitor the efficiency of operations.', Icons.check_circle),
+              _buildMetricCard('Upcoming Tasks', 'Stay ahead by tracking tasks that are scheduled in the future. This helps in planning and managing work effectively.', Icons.event),
               SizedBox(height: 20),
 
               // Alerts Section
@@ -81,9 +60,9 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              _buildAlertCard('Low Stock Alert', lowStockAlert, Icons.warning, Colors.orange),
-              _buildAlertCard('Overdue Task', overdueTaskAlert, Icons.error, Colors.red),
-              _buildAlertCard('Upcoming Maintenance', maintenanceAlert, Icons.build, Colors.blue),
+              _buildAlertCard('Low Stock Alert', 'This alert notifies when inventory levels are running low. Keep an eye on stock levels to avoid running out of critical items.', Icons.warning, Colors.orange),
+              _buildAlertCard('Overdue Task', 'This alert notifies when a task is past its deadline. Ensure timely completion of tasks to maintain operational flow.', Icons.error, Colors.red),
+              _buildAlertCard('Upcoming Maintenance', 'Stay informed about upcoming equipment maintenance to prevent breakdowns and ensure smooth operations.', Icons.build, Colors.blue),
               SizedBox(height: 20),
             ],
           ),
@@ -105,16 +84,6 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
                   fontSize: 24,
                 ),
               ),
-            ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('My Profile'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => WarehouseStaffMyProfilePage()),
-                );
-              },
             ),
             ListTile(
               leading: Icon(Icons.inventory),
@@ -163,7 +132,7 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
   }
 
   // Method to build key metric card
-  Widget _buildMetricCard(String title, String value, IconData icon) {
+  Widget _buildMetricCard(String title, String description, IconData icon) {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -183,7 +152,7 @@ class _WarehouseStaffDashboardPageState extends State<WarehouseStaffDashboardPag
                   ),
                   SizedBox(height: 5),
                   Text(
-                    value,
+                    description,
                     style: TextStyle(fontSize: 16),
                   ),
                 ],

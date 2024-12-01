@@ -1,25 +1,57 @@
 import 'package:hive/hive.dart';
 
-part 'task.g.dart'; // Needed for code generation
+part 'task.g.dart'; // This part is required for Hive type adapter generation
 
-@HiveType(typeId: 2) // Unique typeId for the model
-class Task extends HiveObject {
+@HiveType(typeId: 6)
+class Task {
   @HiveField(0)
-  String task;
+  final String title;
 
   @HiveField(1)
-  String description;
+  final String assignedTo;
 
   @HiveField(2)
-  String priority;
+  final String priority;
 
   @HiveField(3)
-  List<String> assignedTo; // IDs or names of users assigned to the task
+  final DateTime date;
+
+  @HiveField(4)
+  final String task;
+
+  var dueDate;
+
+  var status;
+
+  var description;
 
   Task({
-    required this.task,
-    required this.description,
+    required this.title,
+    required this.assignedTo,
     required this.priority,
-    this.assignedTo = const [],
+    required this.date,
+    this.task = 'Default Task', // Provide a default value for 'task'
   });
+
+  // Method to convert Task to a map
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'assignedTo': assignedTo,
+      'priority': priority,
+      'date': date.toIso8601String(),
+      'task': task,
+    };
+  }
+
+  // Factory to convert a map back to Task
+  factory Task.fromMap(Map<String, dynamic> map) {
+    return Task(
+      title: map['title'],
+      assignedTo: map['assignedTo'],
+      priority: map['priority'],
+      date: DateTime.parse(map['date']),
+      task: map['task'] ?? 'Default Task', // Default task value
+    );
+  }
 }

@@ -30,7 +30,7 @@ class _FarmManagerPageState extends State<FarmManagerPage> {
       await Hive.openBox<User>('userBox');
       await Hive.openBox<InventoryItem>('inventoryBox');
       await Hive.openBox<Supplier>('supplierBox');
-      await Hive.openBox<Task>('taskBox');
+      await Hive.openBox<Task>('tasksBox');
       await Hive.openBox<NotificationModel>('notificationBox');
 
       setState(() {
@@ -130,9 +130,8 @@ class _FarmManagerPageState extends State<FarmManagerPage> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            Text('Description: ${task.description}'),
             Text('Priority: ${task.priority}'),
-            Text('Assigned To: ${task.assignedTo.join(', ')}'),
+           Text('Assigned To: ${task.assignedTo}'),
           ],
         ),
       ),

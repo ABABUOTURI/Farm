@@ -1,60 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class SupervisorCropAndLivestockManagementPage extends StatefulWidget {
   @override
-  _SupervisorCropAndLivestockManagementPageState createState() =>
-      _SupervisorCropAndLivestockManagementPageState();
+  _SupervisorCropAndLivestockManagementPage createState() =>
+      _SupervisorCropAndLivestockManagementPage();
 }
 
-class _SupervisorCropAndLivestockManagementPageState
+class _SupervisorCropAndLivestockManagementPage
     extends State<SupervisorCropAndLivestockManagementPage> {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
-  // Sample data for crops and livestock
-  List<String> crops = ['Maize', 'Wheat', 'Rice'];
-  List<String> livestock = ['Cattle', 'Goats', 'Poultry'];
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeNotifications();
-  }
-
-  void _initializeNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  }
-
-  void _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'channel_id',
-      'channel_name',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      body,
-      platformChannelSpecifics,
-      payload: 'item x',
-    );
-  }
+  // Dummy data for demonstration purposes
+  List<Map<String, String>> cropRecords = [];
+  List<Map<String, String>> livestockRecords = [];
 
   @override
   Widget build(BuildContext context) {
@@ -70,147 +26,88 @@ class _SupervisorCropAndLivestockManagementPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Crop Management Section
-              Text(
-                'Crop Management',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              ..._buildEditableList('Crops', crops, _editCrop),
-              _buildManagementCard(
-                  'Track Crop Types',
-                  'Monitor different crop types on the farm',
-                  Icons.grass,
-                  _trackCropTypes),
-              _buildManagementCard(
-                  'Planting Schedules',
-                  'View upcoming planting schedules',
-                  Icons.calendar_today,
-                  _viewPlantingSchedules),
-              _buildManagementCard(
-                  'Harvesting Times',
-                  'View harvesting times and schedules',
-                  Icons.agriculture,
-                  _viewHarvestingTimes),
+              // Crop Records
+              if (cropRecords.isNotEmpty)
+                _buildGroupCard('Crops', cropRecords),
+              if (cropRecords.isEmpty)
+                Center(
+                  child: Text(
+                    'No Crop records available.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
               SizedBox(height: 20),
 
-              // Livestock Management Section
-              Text(
-                'Livestock Management',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              ..._buildEditableList('Livestock', livestock, _editLivestock),
-              _buildManagementCard(
-                  'Track Livestock Details',
-                  'Monitor livestock breed, health status, and more',
-                  Icons.pets,
-                  _trackLivestockDetails),
-              _buildManagementCard(
-                  'Feeding Schedules',
-                  'View feeding schedules for livestock',
-                  Icons.food_bank,
-                  _viewFeedingSchedules),
-              _buildManagementCard(
-                  'Health Checks',
-                  'Receive notifications for livestock health checks',
-                  Icons.health_and_safety,
-                  _viewHealthChecks),
-              SizedBox(height: 20),
-
-              // Notifications Section
-              Text(
-                'Notifications',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildNotificationCard(
-                  'Planting Reminder',
-                  'Get reminders for planting schedules',
-                  Icons.notifications_active,
-                  () {
-                _showNotification('Planting Reminder',
-                    'Reminder: Upcoming planting is scheduled for tomorrow');
-              }),
-              _buildNotificationCard(
-                  'Harvesting Reminder',
-                  'Get reminders for harvesting schedules',
-                  Icons.notifications,
-                  () {
-                _showNotification('Harvesting Reminder',
-                    'Reminder: Harvesting is scheduled for next week');
-              }),
-              _buildNotificationCard(
-                  'Health Check Alert',
-                  'Get alerts for livestock health checks',
-                  Icons.health_and_safety,
-                  () {
-                _showNotification('Health Check Alert',
-                    'Alert: Health check needed for cattle #45');
-              }),
+              // Livestock Records
+              if (livestockRecords.isNotEmpty)
+                _buildGroupCard('Livestock', livestockRecords),
+              if (livestockRecords.isEmpty)
+                Center(
+                  child: Text(
+                    'No Livestock records available.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
             ],
           ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddDialog(context),
+        backgroundColor: Color(0xFF08B797),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  // Method to build a grouped card
+  Widget _buildGroupCard(String title, List<Map<String, String>> records) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            ...records.map((record) {
+              return ListTile(
+                title: Text(record.entries.first.value),
+                subtitle: Text(record.entries.map((e) => '${e.key}: ${e.value}').join('\n')),
+              );
+            }).toList(),
+          ],
         ),
       ),
     );
   }
 
-  // Builds an editable list of items (Crops or Livestock)
-  List<Widget> _buildEditableList(
-      String title, List<String> items, Function(String, int) onEdit) {
-    return [
-      Text(
-        title,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      SizedBox(height: 10),
-      ...items.asMap().entries.map((entry) {
-        int index = entry.key;
-        String value = entry.value;
-        return Card(
-          elevation: 2,
-          color: Colors.white,
-          child: ListTile(
-            leading: Icon(Icons.edit, size: 40, color: Color(0xFF08B797)),
-            title: Text(value,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            trailing: IconButton(
-              icon: Icon(Icons.arrow_forward),
-              onPressed: () {
-                _showEditDialog(title, value, index, onEdit);
-              },
-            ),
-          ),
-        );
-      }).toList(),
-    ];
-  }
-
-  void _showEditDialog(
-      String title, String value, int index, Function(String, int) onEdit) {
-    TextEditingController controller = TextEditingController(text: value);
+  // Method to show Add Dialog
+  void _showAddDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit $title'),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(hintText: 'Enter new $title'),
-          ),
+          title: Text('Select Category'),
+          content: Text('Would you like to add a Crop or Livestock?'),
           actions: [
             TextButton(
               onPressed: () {
-                onEdit(controller.text, index);
                 Navigator.pop(context);
+                _showInputForm(context, 'Crop');
               },
-              child: Text('Save'),
+              child: Text('Crop'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
+                _showInputForm(context, 'Livestock');
               },
-              child: Text('Cancel'),
+              child: Text('Livestock'),
             ),
           ],
         );
@@ -218,75 +115,70 @@ class _SupervisorCropAndLivestockManagementPageState
     );
   }
 
-  // Edit functions for crops and livestock
-  void _editCrop(String newCrop, int index) {
-    setState(() {
-      crops[index] = newCrop;
-    });
-  }
+  // Method to show the input form based on selection
+  void _showInputForm(BuildContext context, String category) {
+    String name = '';
+    String detail1 = '';
+    String detail2 = '';
 
-  void _editLivestock(String newLivestock, int index) {
-    setState(() {
-      livestock[index] = newLivestock;
-    });
-  }
+    String field1 = category == 'Crop' ? 'Planting Date' : 'Breed';
+    String field2 = category == 'Crop' ? 'Harvesting Date' : 'Feeding Schedule';
 
-  Widget _buildManagementCard(
-      String title, String description, IconData icon, Function onPressed) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: ListTile(
-        leading: Icon(icon, size: 40, color: Color(0xFF08B797)),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(description),
-        trailing: IconButton(
-          icon: Icon(Icons.arrow_forward),
-          onPressed: () => onPressed(),
-        ),
-      ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add $category'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(labelText: category),
+                onChanged: (value) => name = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: field1),
+                onChanged: (value) => detail1 = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: field2),
+                onChanged: (value) => detail2 = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (category == 'Crop') {
+                  setState(() {
+                    cropRecords.add({
+                      category: name,
+                      field1: detail1,
+                      field2: detail2,
+                    });
+                  });
+                } else {
+                  setState(() {
+                    livestockRecords.add({
+                      category: name,
+                      field1: detail1,
+                      field2: detail2,
+                    });
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
     );
-  }
-
-  Widget _buildNotificationCard(
-      String title, String description, IconData icon, Function onPressed) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: ListTile(
-        leading: Icon(icon, size: 40, color: Color(0xFF08B797)),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(description),
-        trailing: IconButton(
-          icon: Icon(Icons.notifications),
-          onPressed: () => onPressed(),
-        ),
-      ),
-    );
-  }
-
-  // Placeholder methods for handling management functions
-  void _trackCropTypes() {
-    print('Tracking Crop Types...');
-  }
-
-  void _viewPlantingSchedules() {
-    print('Viewing Planting Schedules...');
-  }
-
-  void _viewHarvestingTimes() {
-    print('Viewing Harvesting Times...');
-  }
-
-  void _trackLivestockDetails() {
-    print('Tracking Livestock Details...');
-  }
-
-  void _viewFeedingSchedules() {
-    print('Viewing Feeding Schedules...');
-  }
-
-  void _viewHealthChecks() {
-    print('Viewing Health Checks...');
   }
 }

@@ -21,7 +21,7 @@ class EquipmentAdapter extends TypeAdapter<Equipment> {
       description: fields[1] as String,
       model: fields[2] as String,
       serialNumber: fields[3] as String,
-      lastMaintenance: fields[4] as DateTime,
+      lastMaintenance: fields[4] as DateTime, availability: '',
     );
   }
 

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-
-
 import '../use_management/suppliervendor_management.dart';
 import 'Drawer/Supervisor_Drawer/CLManagement.dart';
 import 'Drawer/Supervisor_Drawer/EquipmentSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/InventorySupervisor.dart';
-import 'Drawer/Supervisor_Drawer/MyprofileSupervisor.dart';
+//import 'Drawer/Supervisor_Drawer/MyprofileSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/ReportSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/SupervisorNotification.dart';
 import 'Drawer/Supervisor_Drawer/TaskSupervisor.dart';
@@ -97,16 +95,16 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
                 ),
               ),
             ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('My Profile'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorMyProfilePage()),
-                );
-              },
-            ),
+            //ListTile(
+              //leading: Icon(Icons.person),
+              //title: Text('My Profile'),
+              //onTap: () {
+                //Navigator.push(
+                  //context,
+                  //MaterialPageRoute(builder: (context) => SupervisorMyProfilePage()),
+                //);
+              //},
+            //),
            
             ListTile(
               leading: Icon(Icons.agriculture),

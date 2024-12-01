@@ -1,48 +1,185 @@
+import 'package:farm_system_inventory/models/task.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart'; // Ensure you import Hive Flutter
 import 'package:table_calendar/table_calendar.dart';
+import 'models/task.dart'; // Import your Task model
 
 class SupervisorTaskSchedulingPage extends StatefulWidget {
-  final Function(Map<String, dynamic>) onTaskAdded;
-
-  SupervisorTaskSchedulingPage({required this.onTaskAdded});
-
   @override
   _SupervisorTaskSchedulingPageState createState() =>
       _SupervisorTaskSchedulingPageState();
 }
 
-class _SupervisorTaskSchedulingPageState extends State<SupervisorTaskSchedulingPage> {
-  List<Map<String, dynamic>> tasks = [];
+class _SupervisorTaskSchedulingPageState
+    extends State<SupervisorTaskSchedulingPage> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _selectedDay = DateTime.now();
-  late Box taskBox;
+  late Box<Task> taskBox;
+
+  // Controllers for task input fields
+  final TextEditingController _taskTitleController = TextEditingController();
+  final TextEditingController _taskAssignedToController =
+      TextEditingController();
+  final TextEditingController _taskPriorityController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _initializeHive(); // Initialize Hive box
+    _initializeHive(); // Initialize Hive database
   }
 
-  // Initialize Hive box
-  _initializeHive() async {
-    taskBox = await Hive.openBox('tasks'); // Open or create 'tasks' box
-    _loadTasks(); // Load tasks from Hive
-  }
-
-  // Load tasks from Hive
-  _loadTasks() {
-    setState(() {
-      tasks = List<Map<String, dynamic>>.from(taskBox.values);
-    });
-  }
-
-  // Save tasks to Hive
-  _saveTasks() {
-    taskBox.clear(); // Clear existing tasks in Hive
-    for (var task in tasks) {
-      taskBox.add(task); // Add new tasks to Hive
+  Future<void> _initializeHive() async {
+    await Hive.initFlutter(); // Initialize Hive
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(TaskAdapter()); // Register the adapter for Task
     }
+    taskBox = await Hive.openBox<Task>('tasksBox'); // Open tasks Hive box
+    _logAllTasks(); // Log all existing tasks to the console
+    setState(() {}); // Refresh UI
+  }
+
+  // Add a new task to the Hive database
+  void _addTask() {
+    String taskTitle = _taskTitleController.text.trim();
+    String assignedTo = _taskAssignedToController.text.trim();
+    String priority = _taskPriorityController.text.trim();
+
+    if (taskTitle.isNotEmpty && assignedTo.isNotEmpty && priority.isNotEmpty) {
+      Task newTask = Task(
+        title: taskTitle,
+        assignedTo: assignedTo,
+        priority: priority,
+        date: _selectedDay,
+      );
+
+      taskBox.add(newTask); // Save the task to Hive
+      _logAllTasks(); // Log the newly added task
+      _clearInputFields(); // Clear input fields after adding
+      setState(() {}); // Refresh the UI
+    } else {
+      _showSnackBar('Please fill in all task details.');
+    }
+  }
+
+  // Clear input fields
+  void _clearInputFields() {
+    _taskTitleController.clear();
+    _taskAssignedToController.clear();
+    _taskPriorityController.clear();
+  }
+
+  // Display a Snackbar message
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  // Show a dialog to add a new task
+  void _showAddTaskDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Task'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _taskTitleController,
+                decoration: InputDecoration(labelText: 'Task Title'),
+              ),
+              TextField(
+                controller: _taskAssignedToController,
+                decoration: InputDecoration(labelText: 'Assigned To'),
+              ),
+              TextField(
+                controller: _taskPriorityController,
+                decoration: InputDecoration(labelText: 'Priority'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              child: Text('Add Task'),
+              onPressed: () {
+                _addTask(); // Add the task
+                Navigator.of(context).pop(); // Close dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Log all tasks in the console
+  void _logAllTasks() {
+    if (taskBox.isEmpty) {
+      print('No tasks in Hive.');
+    } else {
+      print('All tasks in Hive:');
+      for (int i = 0; i < taskBox.length; i++) {
+        print('Task $i: ${taskBox.getAt(i)}');
+      }
+    }
+  }
+
+  // Build task list widget
+  Widget _buildTaskList() {
+    return ValueListenableBuilder(
+      valueListenable: taskBox.listenable(),
+      builder: (context, Box<Task> box, _) {
+        if (box.isEmpty) {
+          return Center(child: Text('No tasks available.'));
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: box.length,
+          itemBuilder: (context, index) {
+            // Retrieve task with fallback to default values if null
+            Task task = box.getAt(index) ??
+                Task(
+                  title: 'No Title',
+                  assignedTo: '',
+                  priority: '',
+                  date: DateTime.now(), // Fallback default value for date
+                );
+
+            return _buildTaskCard(task);
+          },
+        );
+      },
+    );
+  }
+
+  // Build each task card widget
+  Widget _buildTaskCard(Task task) {
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.only(bottom: 15),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ListTile(
+        leading: Icon(Icons.task_alt, color: Colors.blue),
+        title: Text(
+          task.title,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Assigned To: ${task.assignedTo}'),
+            Text('Priority: ${task.priority}'),
+            Text('Date: ${task.date.toLocal()}'),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -62,28 +199,22 @@ class _SupervisorTaskSchedulingPageState extends State<SupervisorTaskSchedulingP
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            _buildCalendar(),
+            _buildCalendar(), // Calendar widget
             SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: () => _showAddTaskDialog(),
+              onPressed: _showAddTaskDialog,
               icon: Icon(Icons.add),
               label: Text('Add New Task'),
             ),
             SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, index) {
-                  return _buildTaskCard(tasks[index], index);
-                },
-              ),
-            ),
+            Expanded(child: _buildTaskList()), // Display task list
           ],
         ),
       ),
     );
   }
 
+  // Build calendar widget
   Widget _buildCalendar() {
     return TableCalendar(
       firstDay: DateTime.utc(2020, 1, 1),
@@ -103,176 +234,6 @@ class _SupervisorTaskSchedulingPageState extends State<SupervisorTaskSchedulingP
           });
         }
       },
-    );
-  }
-
-  // Create card for each task
-  Widget _buildTaskCard(Map<String, dynamic> task, int index) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.only(bottom: 15),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: ListTile(
-        leading: Icon(Icons.task_alt, color: Colors.blue),
-        title: Text(
-          task['title'],
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Assigned To: ${task['assignedTo']}'),
-            Text('Priority: ${task['priority']}'),
-            Text('Due Date: ${task['dueDate']}'),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: Colors.blue),
-              onPressed: () => _showEditTaskDialog(task, index),
-            ),
-            IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteTask(index),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddTaskDialog() {
-    _showTaskDialog();
-  }
-
-  void _showEditTaskDialog(Map<String, dynamic> task, int index) {
-    _showTaskDialog(task: task, index: index);
-  }
-
-  void _showTaskDialog({Map<String, dynamic>? task, int? index}) {
-    final titleController = TextEditingController(text: task?['title']);
-    final assignedToController = TextEditingController(text: task?['assignedTo']);
-    final priorityController = TextEditingController(text: task?['priority']);
-    final dueDateController = TextEditingController(text: task?['dueDate']);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(task == null ? 'Add New Task' : 'Edit Task'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(labelText: 'Task Title'),
-                ),
-                TextField(
-                  controller: assignedToController,
-                  decoration: InputDecoration(labelText: 'Assigned To'),
-                ),
-                TextField(
-                  controller: priorityController,
-                  decoration: InputDecoration(labelText: 'Priority (High/Medium/Low)'),
-                ),
-                TextField(
-                  controller: dueDateController,
-                  decoration: InputDecoration(labelText: 'Due Date'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (task == null) {
-                  _addTask(
-                    titleController.text,
-                    assignedToController.text,
-                    priorityController.text,
-                    dueDateController.text,
-                  );
-                } else {
-                  _updateTask(
-                    index!,
-                    titleController.text,
-                    assignedToController.text,
-                    priorityController.text,
-                    dueDateController.text,
-                  );
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text(task == null ? 'Add' : 'Update'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _addTask(String title, String assignedTo, String priority, String dueDate) {
-    final newTask = {
-      'title': title,
-      'assignedTo': assignedTo,
-      'priority': priority,
-      'dueDate': dueDate,
-    };
-
-    widget.onTaskAdded(newTask); // Send task back to parent widget
-
-    setState(() {
-      tasks.add(newTask); // Optionally update local state as well
-    });
-
-    _saveTasks(); // Save updated tasks to Hive
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Task successfully added!'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _updateTask(int index, String title, String assignedTo, String priority, String dueDate) {
-    setState(() {
-      tasks[index] = {
-        'title': title,
-        'assignedTo': assignedTo,
-        'priority': priority,
-        'dueDate': dueDate,
-      };
-    });
-
-    _saveTasks(); // Save updated tasks to Hive
-  }
-
-  void _deleteTask(int index) {
-    setState(() {
-      tasks.removeAt(index);
-    });
-
-    _saveTasks(); // Save updated tasks to Hive
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Task deleted!'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 2),
-      ),
     );
   }
 }

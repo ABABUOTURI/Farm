@@ -1,4 +1,3 @@
-// crop_livestock_management_page.dart
 import 'package:flutter/material.dart';
 
 class CropLivestockManagementPage extends StatefulWidget {
@@ -10,15 +9,8 @@ class CropLivestockManagementPage extends StatefulWidget {
 class _CropLivestockManagementPageState
     extends State<CropLivestockManagementPage> {
   // Dummy data for demonstration purposes
-  List<Map<String, String>> cropRecords = [
-    {'Crop': 'Wheat', 'Planting Date': '2024-10-01', 'Harvesting Date': '2025-02-15'},
-    {'Crop': 'Maize', 'Planting Date': '2024-09-15', 'Harvesting Date': '2025-01-20'},
-  ];
-
-  List<Map<String, String>> livestockRecords = [
-    {'Breed': 'Holstein', 'Health Status': 'Healthy', 'Feeding Time': '7:00 AM'},
-    {'Breed': 'Angus', 'Health Status': 'Sick', 'Feeding Time': '6:30 AM'},
-  ];
+  List<Map<String, String>> cropRecords = [];
+  List<Map<String, String>> livestockRecords = [];
 
   @override
   Widget build(BuildContext context) {
@@ -34,123 +26,159 @@ class _CropLivestockManagementPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
-
-              // Crop Management Section
-              Text(
-                'Crop Management',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildCropList(),
+              // Crop Records
+              if (cropRecords.isNotEmpty)
+                _buildGroupCard('Crops', cropRecords),
+              if (cropRecords.isEmpty)
+                Center(
+                  child: Text(
+                    'No Crop records available.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
               SizedBox(height: 20),
 
-              // Livestock Management Section
-              Text(
-                'Livestock Management',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildLivestockList(),
-              SizedBox(height: 20),
-
-              // Notifications Section
-              Text(
-                'Notifications',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildNotificationCard('Upcoming Harvest', 'Wheat harvest due on 2025-02-15', Icons.notifications_active, Colors.green),
-              _buildNotificationCard('Health Alert', 'Angus cattle needs medical attention', Icons.warning, Colors.red),
+              // Livestock Records
+              if (livestockRecords.isNotEmpty)
+                _buildGroupCard('Livestock', livestockRecords),
+              if (livestockRecords.isEmpty)
+                Center(
+                  child: Text(
+                    'No Livestock records available.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ),
             ],
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddDialog(context),
+        backgroundColor: Color(0xFF08B797),
+        child: Icon(Icons.add),
+      ),
     );
   }
 
-  // Method to build the crop list
-  Widget _buildCropList() {
-    return Column(
-      children: cropRecords.map((crop) {
-        return Card(
-          elevation: 2,
-          color: Colors.white,
-          child: ListTile(
-            leading: Icon(Icons.grass, color: Color(0xFF08B797)),
-            title: Text(crop['Crop']!),
-            subtitle: Text('Planting Date: ${crop['Planting Date']}, Harvesting Date: ${crop['Harvesting Date']}'),
-            trailing: IconButton(
-              icon: Icon(Icons.edit, color: Colors.grey),
-              onPressed: () {
-                // Handle edit crop action
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Edit crop feature coming soon!')),
-                );
-              },
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // Method to build the livestock list
-  Widget _buildLivestockList() {
-    return Column(
-      children: livestockRecords.map((livestock) {
-        return Card(
-          elevation: 2,
-          color: Colors.white,
-          child: ListTile(
-            leading: Icon(Icons.pets, color: Color(0xFF08B797)),
-            title: Text(livestock['Breed']!),
-            subtitle: Text('Health Status: ${livestock['Health Status']}, Feeding Time: ${livestock['Feeding Time']}'),
-            trailing: IconButton(
-              icon: Icon(Icons.edit, color: Colors.grey),
-              onPressed: () {
-                // Handle edit livestock action
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Edit livestock feature coming soon!')),
-                );
-              },
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  // Method to build notification card
-  Widget _buildNotificationCard(String title, String message, IconData icon, Color color) {
+  // Method to build a grouped card
+  Widget _buildGroupCard(String title, List<Map<String, String>> records) {
     return Card(
       elevation: 2,
-      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 40, color: color),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    message,
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
-              ),
+            Text(
+              title,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 10),
+            ...records.map((record) {
+              return ListTile(
+                title: Text(record.entries.first.value),
+                subtitle: Text(record.entries.map((e) => '${e.key}: ${e.value}').join('\n')),
+              );
+            }).toList(),
           ],
         ),
       ),
+    );
+  }
+
+  // Method to show Add Dialog
+  void _showAddDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Select Category'),
+          content: Text('Would you like to add a Crop or Livestock?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showInputForm(context, 'Crop');
+              },
+              child: Text('Crop'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showInputForm(context, 'Livestock');
+              },
+              child: Text('Livestock'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Method to show the input form based on selection
+  void _showInputForm(BuildContext context, String category) {
+    String name = '';
+    String detail1 = '';
+    String detail2 = '';
+
+    String field1 = category == 'Crop' ? 'Planting Date' : 'Breed';
+    String field2 = category == 'Crop' ? 'Harvesting Date' : 'Feeding Schedule';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add $category'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(labelText: category),
+                onChanged: (value) => name = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: field1),
+                onChanged: (value) => detail1 = value,
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: field2),
+                onChanged: (value) => detail2 = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (category == 'Crop') {
+                  setState(() {
+                    cropRecords.add({
+                      category: name,
+                      field1: detail1,
+                      field2: detail2,
+                    });
+                  });
+                } else {
+                  setState(() {
+                    livestockRecords.add({
+                      category: name,
+                      field1: detail1,
+                      field2: detail2,
+                    });
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

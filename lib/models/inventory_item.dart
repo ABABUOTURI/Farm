@@ -18,7 +18,9 @@ class InventoryItem extends HiveObject {
 
   var price;
 
-  var category; // consumable or non-consumable
+  var category;
+
+  var description; // consumable or non-consumable
 
   InventoryItem({
     required this.name,

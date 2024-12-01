@@ -155,6 +155,8 @@ class Task {
     required this.priority,
     required this.dueDate,
   });
+
+  get date => null;
 }
 
 // Placeholder for Add Task Page

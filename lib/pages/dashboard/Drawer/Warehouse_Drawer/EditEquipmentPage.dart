@@ -80,7 +80,7 @@ class _EditEquipmentPageState extends State<EditEquipmentPage> {
                         model: _model,
                         serialNumber: _serialNumber,
                         description: _description,
-                        lastMaintenance: _lastMaintenance,
+                        lastMaintenance: _lastMaintenance, availability: '',
                       ),
                     );
                     Navigator.pop(context);

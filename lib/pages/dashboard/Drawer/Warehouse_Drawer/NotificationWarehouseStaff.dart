@@ -59,7 +59,7 @@ class _WarehouseStaffNotificationCenterPageState
     for (var task in taskBox.values) {
       notifications.add(NotificationItem(
         title: 'New Task: ${task.task}',
-        message: 'Priority: ${task.priority}, Assigned to: ${task.assignedTo.join(", ")}',
+        message: 'Priority: ${task.priority}, Assigned to: ${task.assignedTo}',
         type: NotificationType.task,
         date: DateTime.now(),
       ));

@@ -1,12 +1,53 @@
+import 'package:farm_system_inventory/models/equipment.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class SupervisorEquipmentManagementPage extends StatefulWidget {
   @override
-  _SupervisorEquipmentManagementPageState createState() => _SupervisorEquipmentManagementPageState();
+  _SupervisorEquipmentManagementPageState createState() =>
+      _SupervisorEquipmentManagementPageState();
 }
 
-class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentManagementPage> {
-  List<Map<String, dynamic>> equipmentItems = [];
+class _SupervisorEquipmentManagementPageState
+    extends State<SupervisorEquipmentManagementPage> {
+  late Box<Equipment> equipmentBox;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeHive();
+  }
+
+  Future<void> _initializeHive() async {
+    await Hive.initFlutter();
+    Hive.registerAdapter(EquipmentAdapter());
+    equipmentBox = await Hive.openBox<Equipment>('equipmentBox');
+    setState(() {});
+  }
+
+  void _addEquipment(Equipment equipment) async {
+    await equipmentBox.add(equipment);
+    setState(() {});
+    _showNotification('Equipment added successfully!');
+  }
+
+  void _editEquipment(int index, Equipment equipment) async {
+    await equipmentBox.putAt(index, equipment);
+    setState(() {});
+    _showNotification('Equipment updated successfully!');
+  }
+
+  void _deleteEquipment(int index) async {
+    await equipmentBox.deleteAt(index);
+    setState(() {});
+    _showNotification('Equipment deleted successfully!');
+  }
+
+  void _showNotification(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,41 +56,53 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
         title: Text('Equipment Management'),
         backgroundColor: Color(0xFF08B797),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            ElevatedButton(
-              onPressed: () => _showAddEquipmentDialog(),
-              child: Text('Add New Equipment'),
+      body: ValueListenableBuilder(
+        valueListenable: equipmentBox.listenable(),
+        builder: (context, Box<Equipment> box, _) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _showAddEquipmentDialog();
+                  },
+                  child: Text('Add New Equipment'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF08B797),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: box.length,
+                    itemBuilder: (context, index) {
+                      final equipment = box.getAt(index);
+                      return _buildEquipmentCard(equipment!, index);
+                    },
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: equipmentItems.length,
-                itemBuilder: (context, index) {
-                  return _buildEquipmentItemCard(equipmentItems[index]);
-                },
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildEquipmentItemCard(Map<String, dynamic> item) {
+  Widget _buildEquipmentCard(Equipment equipment, int index) {
     return Card(
       elevation: 2,
       margin: EdgeInsets.only(bottom: 10),
       child: ListTile(
-        title: Text(item['name']),
+        title: Text(equipment.name),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Model: ${item['model']}'),
-            Text('Serial Number: ${item['serialNumber']}'),
-            Text('Availability: ${item['availability']}'),
+            Text('Model: ${equipment.model}'),
+            Text('Serial Number: ${equipment.serialNumber}'),
+            Text('Description: ${equipment.description}'),
+            Text('Last Maintenance: ${equipment.lastMaintenance.toLocal().toString().split(' ')[0]}'),
           ],
         ),
         trailing: Row(
@@ -57,11 +110,11 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
           children: [
             IconButton(
               icon: Icon(Icons.edit),
-              onPressed: () => _showEditEquipmentDialog(item),
+              onPressed: () => _showEditEquipmentDialog(equipment, index),
             ),
             IconButton(
               icon: Icon(Icons.delete),
-              onPressed: () => _deleteEquipment(item),
+              onPressed: () => _deleteEquipment(index),
             ),
           ],
         ),
@@ -73,23 +126,23 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
     _showEquipmentDialog();
   }
 
-  void _showEditEquipmentDialog(Map<String, dynamic> item) {
-    _showEquipmentDialog(item: item);
+  void _showEditEquipmentDialog(Equipment equipment, int index) {
+    _showEquipmentDialog(equipment: equipment, index: index);
   }
 
-  void _showEquipmentDialog({Map<String, dynamic>? item}) {
-    final nameController = TextEditingController(text: item?['name']);
-    final descriptionController = TextEditingController(text: item?['description']);
-    final modelController = TextEditingController(text: item?['model']);
-    final serialNumberController = TextEditingController(text: item?['serialNumber']);
-    final availabilityController = TextEditingController(text: item?['availability'] ?? 'Available');
-    final maintenanceDateController = TextEditingController(text: item?['nextMaintenanceDate'] ?? '');
+  void _showEquipmentDialog({Equipment? equipment, int? index}) {
+    final nameController = TextEditingController(text: equipment?.name);
+    final descriptionController = TextEditingController(text: equipment?.description);
+    final modelController = TextEditingController(text: equipment?.model);
+    final serialNumberController = TextEditingController(text: equipment?.serialNumber);
+    final availabilityController = TextEditingController(text: equipment?.availability ?? 'Available');
+    final maintenanceDateController = TextEditingController(text: equipment?.lastMaintenance.toString().split(' ')[0]);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(item == null ? 'Add New Equipment' : 'Edit Equipment'),
+          title: Text(equipment == null ? 'Add New Equipment' : 'Edit Equipment'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -116,7 +169,7 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
                 ),
                 TextField(
                   controller: maintenanceDateController,
-                  decoration: InputDecoration(labelText: 'Next Maintenance Date'),
+                  decoration: InputDecoration(labelText: 'Last Maintenance Date'),
                 ),
               ],
             ),
@@ -124,29 +177,23 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
           actions: [
             TextButton(
               onPressed: () {
-                if (item == null) {
-                  _addEquipment(
-                    nameController.text,
-                    descriptionController.text,
-                    modelController.text,
-                    serialNumberController.text,
-                    availabilityController.text,
-                    maintenanceDateController.text,
-                  );
+                final equipment = Equipment(
+                  name: nameController.text,
+                  description: descriptionController.text,
+                  model: modelController.text,
+                  serialNumber: serialNumberController.text,
+                  availability: availabilityController.text,
+                  lastMaintenance: DateTime.parse(maintenanceDateController.text),
+                );
+
+                if (index == null) {
+                  _addEquipment(equipment);
                 } else {
-                  _updateEquipment(
-                    item,
-                    nameController.text,
-                    descriptionController.text,
-                    modelController.text,
-                    serialNumberController.text,
-                    availabilityController.text,
-                    maintenanceDateController.text,
-                  );
+                  _editEquipment(index, equipment);
                 }
                 Navigator.of(context).pop();
               },
-              child: Text(item == null ? 'Add' : 'Update'),
+              child: Text(equipment == null ? 'Add' : 'Update'),
             ),
             TextButton(
               onPressed: () {
@@ -158,37 +205,5 @@ class _SupervisorEquipmentManagementPageState extends State<SupervisorEquipmentM
         );
       },
     );
-  }
-
-  void _addEquipment(
-      String name, String description, String model, String serialNumber, String availability, String nextMaintenanceDate) {
-    setState(() {
-      equipmentItems.add({
-        'name': name,
-        'description': description,
-        'model': model,
-        'serialNumber': serialNumber,
-        'availability': availability,
-        'nextMaintenanceDate': nextMaintenanceDate,
-      });
-    });
-  }
-
-  void _updateEquipment(Map<String, dynamic> item, String name, String description, String model, String serialNumber,
-      String availability, String nextMaintenanceDate) {
-    setState(() {
-      item['name'] = name;
-      item['description'] = description;
-      item['model'] = model;
-      item['serialNumber'] = serialNumber;
-      item['availability'] = availability;
-      item['nextMaintenanceDate'] = nextMaintenanceDate;
-    });
-  }
-
-  void _deleteEquipment(Map<String, dynamic> item) {
-    setState(() {
-      equipmentItems.remove(item);
-    });
   }
 }

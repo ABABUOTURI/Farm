@@ -19,11 +19,13 @@ class Equipment extends HiveObject {
   @HiveField(4)
   DateTime lastMaintenance;
 
+  var availability;
+
   Equipment({
     required this.name,
     required this.description,
     required this.model,
     required this.serialNumber,
-    required this.lastMaintenance,
+    required this.lastMaintenance, required String availability,
   });
 }

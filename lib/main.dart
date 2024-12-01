@@ -1,11 +1,12 @@
-import 'package:farm_system_inventory/models/equipment.dart';
+import 'package:farm_system_inventory/models/cl.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'models/inventory_item.dart';
-import 'models/supplier_model.dart';
 import 'models/user.dart';
 import 'models/task.dart';
 import 'models/notification.dart';
+import 'models/supplier_model.dart';
+import 'models/inventory_item.dart';
+import 'models/equipment.dart';
 import 'pages/auth/loader.dart'; // Your loader page
 
 void main() async {
@@ -15,15 +16,17 @@ void main() async {
   // Initialize Hive and register all adapters
   await Hive.initFlutter();
 
-  // Register adapters
+  // Register Hive adapters
   Hive.registerAdapter(UserAdapter());
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(NotificationModelAdapter());
   Hive.registerAdapter(SupplierAdapter());
   Hive.registerAdapter(InventoryItemAdapter());
   Hive.registerAdapter(EquipmentAdapter());
+  Hive.registerAdapter(CropAdapter()); // Register the Crop adapter
+  Hive.registerAdapter(LivestockAdapter()); // Register the Livestock adapter
 
-  // Open Hive boxes asynchronously
+  // Open boxes asynchronously
   await Future.wait([
     Hive.openBox<User>('usersBox'),
     Hive.openBox<Task>('tasksBox'),
@@ -31,6 +34,8 @@ void main() async {
     Hive.openBox<Supplier>('suppliersBox'),
     Hive.openBox<InventoryItem>('inventoryBox'),
     Hive.openBox<Equipment>('equipmentBox'),
+    Hive.openBox<Crop>('cropBox'), // Open Crop Box
+    Hive.openBox<Livestock>('livestockBox'), // Open Livestock Box
   ]);
 
   // Set up a global error handler for Flutter errors
@@ -39,6 +44,7 @@ void main() async {
     // Handle errors gracefully here (e.g., logging or custom error messages)
   };
 
+  // Now run your app
   runApp(const FarmInventoryApp());
 }
 
@@ -54,7 +60,7 @@ class FarmInventoryApp extends StatelessWidget {
         primarySwatch: Colors.green,
         useMaterial3: true,
       ),
-      home:  LoaderPage(), // Display a loader page for authentication
+      home: LoaderPage(), // Display a loader page for authentication
     );
   }
 }
