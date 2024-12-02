@@ -37,9 +37,9 @@ class _WarehouseStaffNotificationCenterPageState
     for (var equipment in equipmentBox.values) {
       notifications.add(NotificationItem(
         title: 'Equipment Added: ${equipment.name}',
-        message: 'Model: ${equipment.model}, Serial Number: ${equipment.serialNumber}',
+        message: 'Quantity: ${equipment.quantity}, Unit: ${equipment.unit}, Type: ${equipment.type}',
         type: NotificationType.equipment,
-        date: equipment.lastMaintenance,
+        date: DateTime.now(), // You can customize this date based on your logic
       ));
     }
 

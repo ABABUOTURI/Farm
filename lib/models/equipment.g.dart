@@ -18,27 +18,24 @@ class EquipmentAdapter extends TypeAdapter<Equipment> {
     };
     return Equipment(
       name: fields[0] as String,
-      description: fields[1] as String,
-      model: fields[2] as String,
-      serialNumber: fields[3] as String,
-      lastMaintenance: fields[4] as DateTime, availability: '',
+      quantity: fields[1] as int,
+      unit: fields[2] as String,
+      type: fields[3] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Equipment obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
-      ..write(obj.description)
+      ..write(obj.quantity)
       ..writeByte(2)
-      ..write(obj.model)
+      ..write(obj.unit)
       ..writeByte(3)
-      ..write(obj.serialNumber)
-      ..writeByte(4)
-      ..write(obj.lastMaintenance);
+      ..write(obj.type);
   }
 
   @override

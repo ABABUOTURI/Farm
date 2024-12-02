@@ -4,10 +4,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-//import 'package:permission_handler/permission_handler.dart';  // Add this import
+import 'package:permission_handler/permission_handler.dart';  // Add this import
 
 import '../../../../models/inventory_item.dart';
-import '../../../../models/equipment.dart';
+import '../../../../models/equipment.dart'; // Import the Equipment model
 import '../../../../models/supplier_model.dart';
 import '../../../../models/task.dart';
 
@@ -79,7 +79,7 @@ class _ReportingPageState extends State<ReportingPage> {
   // Build PDF document
   Future<void> _generatePdf() async {
     final pdf = pw.Document();
-    
+
     // Add Inventory section
     pdf.addPage(pw.Page(
       build: (pw.Context context) {
@@ -93,7 +93,14 @@ class _ReportingPageState extends State<ReportingPage> {
     pdf.addPage(pw.Page(
       build: (pw.Context context) {
         return pw.Column(
-          children: equipmentBox.values.map((equipment) => pw.Text('Equipment Name: ${equipment.name}\n')).toList(),
+          children: equipmentBox.values.map((equipment) {
+            return pw.Text(
+              'Equipment Name: ${equipment.name}\n'
+              'Quantity: ${equipment.quantity}\n'
+              'Unit: ${equipment.unit}\n'
+              'Type: ${equipment.type}',
+            );
+          }).toList(),
         );
       },
     ));
@@ -162,23 +169,22 @@ class _ReportingPageState extends State<ReportingPage> {
 
               // Export Reports Section
               Center(
-  child: ElevatedButton(
-    onPressed: () async {
-      final status = await Permission.storage.request();
-      if (status.isGranted) {
-        _generatePdf();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Storage permission required!')));
-      }
-    },
-    child: Text('Export to PDF'),
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Color(0xFF08B797),
-      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-    ),
-  ),
-)
-
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final status = await Permission.storage.request();
+                    if (status.isGranted) {
+                      _generatePdf();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Storage permission required!')));
+                    }
+                  },
+                  child: Text('Export to PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF08B797),
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -215,11 +221,9 @@ class _ReportingPageState extends State<ReportingPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Equipment Name: ${equipment.name}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        Text('Description: ${equipment.description}', style: TextStyle(fontSize: 14)),
-        Text('Model: ${equipment.model}', style: TextStyle(fontSize: 14)),
-        Text('Serial Number: ${equipment.serialNumber}', style: TextStyle(fontSize: 14)),
-        Text('Last Maintenance: ${equipment.lastMaintenance.toLocal().toString().split(' ')[0]}', style: TextStyle(fontSize: 14)),
-        Text('Availability: ${equipment.availability}', style: TextStyle(fontSize: 14)),
+        Text('Quantity: ${equipment.quantity}', style: TextStyle(fontSize: 14)),
+        Text('Unit: ${equipment.unit}', style: TextStyle(fontSize: 14)),
+        Text('Type: ${equipment.type}', style: TextStyle(fontSize: 14)),
         SizedBox(height: 10),
         Divider(),
       ],
@@ -248,52 +252,9 @@ class _ReportingPageState extends State<ReportingPage> {
         Text('Task Title: ${task.title}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         Text('Assigned To: ${task.assignedTo}', style: TextStyle(fontSize: 14)),
         Text('Due Date: ${task.dueDate.toLocal().toString().split(' ')[0]}', style: TextStyle(fontSize: 14)),
-        Text('Description: ${task.description}', style: TextStyle(fontSize: 14)),
         SizedBox(height: 10),
         Divider(),
       ],
     );
   }
 }
-class Permission {
-  // Simulating permission statuses
-  static const String granted = 'granted';
-  static const String denied = 'denied';
-  static const String restricted = 'restricted';
-  static const String unknown = 'unknown';
-
-  // Simulated storage permission status (could be extended for other permissions)
-  String _storagePermissionStatus = unknown;
-  
-  static var storage;
-
-  // Getter for the storage permission status
-  String get storageStatus => _storagePermissionStatus;
-
-  // Method to simulate requesting storage permission
-  Future<String> requestStoragePermission() async {
-    // Simulating the permission request process (this could involve actual API calls)
-    await Future.delayed(Duration(seconds: 1));  // Simulating a delay
-    _storagePermissionStatus = granted;  // For simulation, assume permission is granted
-
-    return _storagePermissionStatus;
-  }
-
-  // Method to check the current storage permission status
-  Future<String> checkStoragePermissionStatus() async {
-    // Simulating a check for current permission status
-    await Future.delayed(Duration(seconds: 1));  // Simulating a delay
-    return _storagePermissionStatus;
-  }
-
-  // Method to simulate handling the request and checking the status
-  Future<void> handlePermissionRequest() async {
-    final status = await requestStoragePermission();
-    if (status == granted) {
-      print('Permission granted. Proceeding with the task.');
-    } else {
-      print('Permission denied. Cannot proceed with the task.');
-    }
-  }
-}
-

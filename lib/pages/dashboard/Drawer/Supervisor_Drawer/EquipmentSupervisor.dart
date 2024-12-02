@@ -1,6 +1,7 @@
-import 'package:farm_system_inventory/models/equipment.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../../../models/equipment.dart'; // Assuming you have an Equipment model
 
 class SupervisorEquipmentManagementPage extends StatefulWidget {
   @override
@@ -11,36 +12,97 @@ class SupervisorEquipmentManagementPage extends StatefulWidget {
 class _SupervisorEquipmentManagementPageState
     extends State<SupervisorEquipmentManagementPage> {
   late Box<Equipment> equipmentBox;
+  String _selectedType = 'All';
+
+  // Controllers for form inputs
+  final TextEditingController _equipmentNameController = TextEditingController();
+  final TextEditingController _equipmentQuantityController = TextEditingController();
+  final TextEditingController _equipmentUnitController = TextEditingController();
+  String _equipmentType = 'Heavy';
 
   @override
   void initState() {
     super.initState();
-    _initializeHive();
+    equipmentBox = Hive.box<Equipment>('equipmentBox');
   }
 
-  Future<void> _initializeHive() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(EquipmentAdapter());
-    equipmentBox = await Hive.openBox<Equipment>('equipmentBox');
-    setState(() {});
+  @override
+  void dispose() {
+    _equipmentNameController.dispose();
+    _equipmentQuantityController.dispose();
+    _equipmentUnitController.dispose();
+    super.dispose();
   }
 
-  void _addEquipment(Equipment equipment) async {
-    await equipmentBox.add(equipment);
-    setState(() {});
-    _showNotification('Equipment added successfully!');
+  // Method to add new equipment to the warehouse
+  void _addEquipment() {
+    String equipmentName = _equipmentNameController.text.trim();
+    String equipmentQuantity = _equipmentQuantityController.text.trim();
+    String equipmentUnit = _equipmentUnitController.text.trim();
+
+    int? quantity = int.tryParse(equipmentQuantity);
+
+    // Only validate unit if the equipment type is 'Heavy'
+    bool isHeavy = _equipmentType == 'Heavy';
+
+    if (equipmentName.isNotEmpty && quantity != null && (isHeavy ? equipmentUnit.isNotEmpty : true)) {
+      Equipment newEquipment = Equipment(
+        name: equipmentName,
+        quantity: quantity,
+        unit: equipmentUnit,
+        type: _equipmentType,
+      );
+      equipmentBox.add(newEquipment);
+      _clearInputFields();
+    } else {
+      // Provide an appropriate error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter valid equipment details. Unit is required for heavy equipment.')),
+      );
+    }
   }
 
-  void _editEquipment(int index, Equipment equipment) async {
-    await equipmentBox.putAt(index, equipment);
-    setState(() {});
+  // Method to clear input fields after adding an equipment
+  void _clearInputFields() {
+    _equipmentNameController.clear();
+    _equipmentQuantityController.clear();
+    _equipmentUnitController.clear();
+    _equipmentType = 'Heavy';
+  }
+
+  // Method to restock an existing equipment using its Hive key
+  void _restockEquipment(Equipment equipment, int additionalQuantity) {
+    equipment.quantity += additionalQuantity;
+    equipment.save(); // Update the equipment in Hive
+    setState(() {}); // Refresh the UI
+  }
+
+  // Method to edit existing equipment
+  void _editEquipment(int index, Equipment equipment) {
+    equipmentBox.putAt(index, equipment); // Update the equipment in Hive
+    setState(() {}); // Refresh the UI
     _showNotification('Equipment updated successfully!');
   }
 
-  void _deleteEquipment(int index) async {
-    await equipmentBox.deleteAt(index);
+  // Method to delete equipment
+  void _deleteEquipment(int index) {
+    equipmentBox.deleteAt(index);
     setState(() {});
     _showNotification('Equipment deleted successfully!');
+  }
+
+  // Filter and sort equipment items
+  List<Equipment> _getFilteredItems() {
+    List<Equipment> items = equipmentBox.values.toList();
+
+    if (_selectedType == 'Low Stock') {
+      items = items.where((item) => item.quantity <= 5).toList();
+    } else if (_selectedType != 'All') {
+      items = items.where((item) => item.type == _selectedType).toList();
+    }
+
+    items.sort((a, b) => b.key.compareTo(a.key));
+    return items;
   }
 
   void _showNotification(String message) {
@@ -56,65 +118,160 @@ class _SupervisorEquipmentManagementPageState
         title: Text('Equipment Management'),
         backgroundColor: Color(0xFF08B797),
       ),
-      body: ValueListenableBuilder(
-        valueListenable: equipmentBox.listenable(),
-        builder: (context, Box<Equipment> box, _) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _showAddEquipmentDialog();
+      backgroundColor: Color(0xFFEEEDEA),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title for Equipment Items
+              Text(
+                'Equipment Items',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              // Scrollable Card for Equipment Items
+              Container(
+                height: 300,
+                child: ValueListenableBuilder(
+                  valueListenable: equipmentBox.listenable(),
+                  builder: (context, Box<Equipment> box, _) {
+                    List<Equipment> items = _getFilteredItems();
+
+                    if (items.isEmpty) {
+                      return Center(child: Text('No equipment available'));
+                    }
+
+                    return ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return _buildEquipmentItemCard(item, index);
+                      },
+                    );
                   },
-                  child: Text('Add New Equipment'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                  ),
                 ),
-                SizedBox(height: 20),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: box.length,
-                    itemBuilder: (context, index) {
-                      final equipment = box.getAt(index);
-                      return _buildEquipmentCard(equipment!, index);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Add New Equipment',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              _buildItemForm(),
+            ],
+          ),
+        ),
+      ),
+      // Floating Action Buttons for Filtering Options
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Heavy';
+              });
+            },
+            backgroundColor: _selectedType == 'Heavy' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.build),
+            tooltip: 'Heavy Equipment',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Light';
+              });
+            },
+            backgroundColor: _selectedType == 'Light' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.toys),
+            tooltip: 'Light Equipment',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'All';
+              });
+            },
+            backgroundColor: _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.select_all),
+            tooltip: 'All',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedType = 'Low Stock';
+              });
+            },
+            backgroundColor: _selectedType == 'Low Stock' ? Color(0xFF08B797) : Colors.grey[300],
+            child: Icon(Icons.warning),
+            tooltip: 'Low Stock',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEquipmentCard(Equipment equipment, int index) {
+  // Method to build equipment item card with restock option
+  Widget _buildEquipmentItemCard(Equipment equipment, int index) {
+    final TextEditingController _restockController = TextEditingController();
+
     return Card(
       elevation: 2,
-      margin: EdgeInsets.only(bottom: 10),
       child: ListTile(
-        title: Text(equipment.name),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Model: ${equipment.model}'),
-            Text('Serial Number: ${equipment.serialNumber}'),
-            Text('Description: ${equipment.description}'),
-            Text('Last Maintenance: ${equipment.lastMaintenance.toLocal().toString().split(' ')[0]}'),
-          ],
-        ),
+        title: Text('${equipment.name}, ${equipment.quantity}, ${equipment.unit}, ${equipment.type}'),
+        subtitle: Text('Quantity: ${equipment.quantity}, ${equipment.unit}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.edit),
-              onPressed: () => _showEditEquipmentDialog(equipment, index),
+              icon: Icon(Icons.edit, color: Colors.blue),
+              onPressed: () {
+                _editEquipment(index, equipment);
+              },
             ),
             IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () => _deleteEquipment(index),
+              icon: Icon(Icons.add, color: Colors.green),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: Text('Restock ${equipment.name}'),
+                      content: TextField(
+                        controller: _restockController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(labelText: 'Additional Quantity'),
+                      ),
+                      actions: [
+                        TextButton(
+                          child: Text('Cancel'),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        ElevatedButton(
+                          child: Text('Restock'),
+                          onPressed: () {
+                            int additionalQuantity = int.tryParse(_restockController.text) ?? 0;
+                            if (additionalQuantity > 0) {
+                              _restockEquipment(equipment, additionalQuantity);
+                            }
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                _deleteEquipment(index);
+              },
             ),
           ],
         ),
@@ -122,88 +279,56 @@ class _SupervisorEquipmentManagementPageState
     );
   }
 
-  void _showAddEquipmentDialog() {
-    _showEquipmentDialog();
-  }
-
-  void _showEditEquipmentDialog(Equipment equipment, int index) {
-    _showEquipmentDialog(equipment: equipment, index: index);
-  }
-
-  void _showEquipmentDialog({Equipment? equipment, int? index}) {
-    final nameController = TextEditingController(text: equipment?.name);
-    final descriptionController = TextEditingController(text: equipment?.description);
-    final modelController = TextEditingController(text: equipment?.model);
-    final serialNumberController = TextEditingController(text: equipment?.serialNumber);
-    final availabilityController = TextEditingController(text: equipment?.availability ?? 'Available');
-    final maintenanceDateController = TextEditingController(text: equipment?.lastMaintenance.toString().split(' ')[0]);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(equipment == null ? 'Add New Equipment' : 'Edit Equipment'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: 'Equipment Name'),
-                ),
-                TextField(
-                  controller: descriptionController,
-                  decoration: InputDecoration(labelText: 'Description'),
-                ),
-                TextField(
-                  controller: modelController,
-                  decoration: InputDecoration(labelText: 'Model'),
-                ),
-                TextField(
-                  controller: serialNumberController,
-                  decoration: InputDecoration(labelText: 'Serial Number'),
-                ),
-                TextField(
-                  controller: availabilityController,
-                  decoration: InputDecoration(labelText: 'Availability'),
-                ),
-                TextField(
-                  controller: maintenanceDateController,
-                  decoration: InputDecoration(labelText: 'Last Maintenance Date'),
-                ),
-              ],
-            ),
+  // Form to add a new equipment item
+  Widget _buildItemForm() {
+    return Column(
+      children: [
+        TextField(
+          controller: _equipmentNameController,
+          decoration: InputDecoration(
+            labelText: 'Equipment Name',
+            border: OutlineInputBorder(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                final equipment = Equipment(
-                  name: nameController.text,
-                  description: descriptionController.text,
-                  model: modelController.text,
-                  serialNumber: serialNumberController.text,
-                  availability: availabilityController.text,
-                  lastMaintenance: DateTime.parse(maintenanceDateController.text),
-                );
-
-                if (index == null) {
-                  _addEquipment(equipment);
-                } else {
-                  _editEquipment(index, equipment);
-                }
-                Navigator.of(context).pop();
-              },
-              child: Text(equipment == null ? 'Add' : 'Update'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _equipmentQuantityController,
+          decoration: InputDecoration(
+            labelText: 'Quantity',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _equipmentUnitController,
+          decoration: InputDecoration(
+            labelText: 'Unit (Only for Heavy Equipment)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        DropdownButton<String>(
+          value: _equipmentType,
+          items: <String>['Heavy', 'Light']
+              .map<DropdownMenuItem<String>>((String value) {
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _equipmentType = value!;
+            });
+          },
+        ),
+        SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: _addEquipment,
+          child: Text('Add Equipment'),
+        ),
+      ],
     );
   }
 }

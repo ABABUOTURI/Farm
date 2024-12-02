@@ -3,82 +3,75 @@ import '../use_management/suppliervendor_management.dart';
 import 'Drawer/Supervisor_Drawer/CLManagement.dart';
 import 'Drawer/Supervisor_Drawer/EquipmentSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/InventorySupervisor.dart';
-//import 'Drawer/Supervisor_Drawer/MyprofileSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/ReportSupervisor.dart';
 import 'Drawer/Supervisor_Drawer/SupervisorNotification.dart';
 import 'Drawer/Supervisor_Drawer/TaskSupervisor.dart';
 
-
-
 class SupervisorDashboardPage extends StatefulWidget {
   @override
-  _SupervisorDashboardPageState createState() => _SupervisorDashboardPageState();
+  _SupervisorDashboardPageState createState() =>
+      _SupervisorDashboardPageState();
 }
 
 class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
-  // Dummy data for demonstration purposes
   String userName = ''; // Replace with dynamic user name
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            SizedBox(width: 8), // Space between icon and text
-            Text('Welcome, $userName!'), // Welcome message in the AppBar
-          ],
-        ),
+        automaticallyImplyLeading: false,
+        title: Text('Welcome'),
         backgroundColor: Color(0xFF08B797),
-        actions: [
-          // Menu icon to open sidebar
-          IconButton(
-            icon: Icon(Icons.person),
-            onPressed: () => _openSidebar(context),
-          ),
-        ],
       ),
       backgroundColor: Color(0xFFEEEDEA),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
-
-              // Key Metrics Section
-              Text(
-                'Key Metrics',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildMetricsCard(
-                  'Current Inventory Levels', '200 Items', Icons.inventory),
-              _buildMetricsCard(
-                  'Task Completion Rate', '90%', Icons.check_circle),
-              _buildMetricsCard(
-                  'Pending Tasks', '3 Tasks', Icons.calendar_today),
-              SizedBox(height: 20),
-
-              // Alerts Section
-              Text(
-                'Alerts',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildAlertCard('Stock Alert', 'Only 5 items left!',
-                  Icons.warning, Colors.orange),
-              _buildAlertCard(
-                  'Overdue Tasks', '1 task overdue!', Icons.error, Colors.red),
-              _buildAlertCard('Maintenance Reminder',
-                  'Equipment maintenance is due soon.', Icons.build, Colors.red),
-              SizedBox(height: 20),
-            ],
-          ),
+      body: Padding(
+        padding: EdgeInsets.all(12.0),
+        child: GridView.count(
+          crossAxisCount: 2, // Two columns for cards
+          crossAxisSpacing: 12.0,
+          mainAxisSpacing: 12.0,
+          childAspectRatio: 0.9, // Control card height
+          children: [
+            _dashboardCard(
+              context,
+              Icons.inventory,
+              'Inventory Management',
+              SupervisorInventoryManagementPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.agriculture,
+              'Crop & Livestock Management',
+              SupervisorCropAndLivestockManagementPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.build,
+              'Equipment Management',
+              SupervisorEquipmentManagementPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.report,
+              'Reporting',
+              SupervisorReportingPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.notifications,
+              'Notifications',
+              SupervisorNotificationCenterPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.check_circle,
+              'Task Management',
+              SupervisorTaskSchedulingPage(),
+            ),
+          ],
         ),
       ),
-      // Sidebar (Drawer)
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -95,17 +88,6 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
                 ),
               ),
             ),
-            //ListTile(
-              //leading: Icon(Icons.person),
-              //title: Text('My Profile'),
-              //onTap: () {
-                //Navigator.push(
-                  //context,
-                  //MaterialPageRoute(builder: (context) => SupervisorMyProfilePage()),
-                //);
-              //},
-            //),
-           
             ListTile(
               leading: Icon(Icons.agriculture),
               title: Text('Crop & Livestock Management'),
@@ -132,7 +114,7 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SupervisorReportingPage ()),
+                  MaterialPageRoute(builder: (context) => SupervisorReportingPage()),
                 );
               },
             ),
@@ -146,75 +128,49 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
                 );
               },
             ),
-            
           ],
         ),
       ),
     );
   }
 
-  // Method to open sidebar
-  void _openSidebar(BuildContext context) {
-    Scaffold.of(context).openDrawer();
-  }
-
-  // Method to build metrics card
-  Widget _buildMetricsCard(String title, String value, IconData icon) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 40, color: Color(0xFF08B797)),
-                SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 5),
-                    Text(value, style: TextStyle(fontSize: 16)),
-                  ],
-                ),
-              ],
-            ),
-          ],
+  Widget _dashboardCard(
+      BuildContext context, IconData icon, String title, Widget page) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => page),
+        );
+      },
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8), // Reduced border radius
         ),
-      ),
-    );
-  }
-
-  // Method to build alert card
-  Widget _buildAlertCard(
-      String title, String message, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(icon, size: 40, color: color),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 5),
-                  Text(message, style: TextStyle(fontSize: 16)),
-                ],
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0), // Reduced padding
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 32, // Reduced icon size
+                color: Color(0xFF08B797),
               ),
-            ),
-          ],
+              SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14, // Reduced font size
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
