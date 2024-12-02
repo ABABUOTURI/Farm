@@ -3,34 +3,73 @@ import 'package:intl/intl.dart';
 
 class WarehouseStaffTaskSchedulingPage extends StatefulWidget {
   @override
-  _WarehouseStaffTaskSchedulingPageState createState() => _WarehouseStaffTaskSchedulingPageState();
+  _WarehouseStaffTaskSchedulingPageState createState() =>
+      _WarehouseStaffTaskSchedulingPageState();
 }
 
-class _WarehouseStaffTaskSchedulingPageState extends State<WarehouseStaffTaskSchedulingPage> {
+class _WarehouseStaffTaskSchedulingPageState
+    extends State<WarehouseStaffTaskSchedulingPage> {
   List<Task> tasks = [];
+  String _selectedPriority = 'All';
 
-  void _addTask(Task task) {
-    setState(() {
-      tasks.add(task);
-    });
+  // Controllers for form inputs
+  final TextEditingController _taskTitleController = TextEditingController();
+  final TextEditingController _taskAssignedToController =
+      TextEditingController();
+  final TextEditingController _taskDueDateController = TextEditingController();
+
+  @override
+  void dispose() {
+    _taskTitleController.dispose();
+    _taskAssignedToController.dispose();
+    _taskDueDateController.dispose();
+    super.dispose();
   }
 
-  void _editTask(int index, Task task) {
-    setState(() {
-      tasks[index] = task;
-    });
+  // Method to add a new task
+  void _addTask() {
+    String taskTitle = _taskTitleController.text.trim();
+    String taskAssignedTo = _taskAssignedToController.text.trim();
+    DateTime? taskDueDate = DateTime.tryParse(_taskDueDateController.text);
+
+    if (taskTitle.isNotEmpty && taskAssignedTo.isNotEmpty && taskDueDate != null) {
+      Task newTask = Task(
+        title: taskTitle,
+        assignedTo: taskAssignedTo,
+        priority: _selectedPriority,
+        dueDate: taskDueDate,
+      );
+      setState(() {
+        tasks.add(newTask);
+      });
+      _clearInputFields();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter valid task details.')),
+      );
+    }
   }
 
-  void _deleteTask(int index) {
-    setState(() {
-      tasks.removeAt(index);
-    });
+  // Method to clear input fields after adding a task
+  void _clearInputFields() {
+    _taskTitleController.clear();
+    _taskAssignedToController.clear();
+    _taskDueDateController.clear();
+    _selectedPriority = 'All';
   }
 
-  void _showNotification(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  // Filter and sort tasks
+  List<Task> _getFilteredTasks() {
+    List<Task> filteredTasks = tasks;
+
+    if (_selectedPriority != 'All') {
+      filteredTasks = filteredTasks
+          .where((task) => task.priority == _selectedPriority)
+          .toList();
+    }
+
+    filteredTasks.sort((a, b) => b.dueDate.compareTo(a.dueDate));
+    return filteredTasks;
   }
 
   @override
@@ -40,55 +79,87 @@ class _WarehouseStaffTaskSchedulingPageState extends State<WarehouseStaffTaskSch
         title: Text('Task Scheduling'),
         backgroundColor: Color(0xFF08B797),
       ),
+      backgroundColor: Color(0xFFEEEDEA),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title for Task List
               Text(
                 'Scheduled Tasks',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              ListView.builder(
-                itemCount: tasks.length,
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemBuilder: (context, index) {
-                  return _buildTaskCard(tasks[index], index);
-                },
-              ),
-              SizedBox(height: 20),
-
-              // Add Task Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddTaskPage(
-                          onAddTask: _addTask,
-                        ),
-                      ),
-                    );
+              // Scrollable List for Tasks
+              Container(
+                height: 300,
+                child: ListView.builder(
+                  itemCount: _getFilteredTasks().length,
+                  itemBuilder: (context, index) {
+                    return _buildTaskCard(_getFilteredTasks()[index], index);
                   },
-                  child: Text('Add Task'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                  ),
                 ),
               ),
+              SizedBox(height: 20),
+              Text(
+                'Add New Task',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              _buildTaskForm(),
             ],
           ),
         ),
       ),
+      // Floating Action Buttons for Filtering Options
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedPriority = 'High';
+              });
+            },
+            backgroundColor: _selectedPriority == 'High'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
+            child: Icon(Icons.priority_high),
+            tooltip: 'High Priority',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedPriority = 'Low';
+              });
+            },
+            backgroundColor: _selectedPriority == 'Low'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
+            child: Icon(Icons.low_priority),
+            tooltip: 'Low Priority',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedPriority = 'All';
+              });
+            },
+            backgroundColor: _selectedPriority == 'All'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
+            child: Icon(Icons.select_all),
+            tooltip: 'All',
+          ),
+        ],
+      ),
     );
   }
 
+  // Method to build task card with edit and delete options
   Widget _buildTaskCard(Task task, int index) {
     return Card(
       elevation: 2,
@@ -119,7 +190,11 @@ class _WarehouseStaffTaskSchedulingPageState extends State<WarehouseStaffTaskSch
                         builder: (context) => EditTaskPage(
                           task: task,
                           index: index,
-                          onEditTask: _editTask,
+                          onEditTask: (updatedTask) {
+                            setState(() {
+                              tasks[index] = updatedTask;
+                            });
+                          },
                         ),
                       ),
                     );
@@ -129,8 +204,12 @@ class _WarehouseStaffTaskSchedulingPageState extends State<WarehouseStaffTaskSch
                 IconButton(
                   icon: Icon(Icons.delete),
                   onPressed: () {
-                    _deleteTask(index);
-                    _showNotification('Task deleted successfully!');
+                    setState(() {
+                      tasks.removeAt(index);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Task deleted successfully!')),
+                    );
                   },
                 ),
               ],
@@ -140,14 +219,69 @@ class _WarehouseStaffTaskSchedulingPageState extends State<WarehouseStaffTaskSch
       ),
     );
   }
+
+  // Form to add a new task
+  Widget _buildTaskForm() {
+    return Column(
+      children: [
+        TextField(
+          controller: _taskTitleController,
+          decoration: InputDecoration(
+            labelText: 'Task Title',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _taskAssignedToController,
+          decoration: InputDecoration(
+            labelText: 'Assigned To',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        TextField(
+          controller: _taskDueDateController,
+          keyboardType: TextInputType.datetime,
+          decoration: InputDecoration(
+            labelText: 'Due Date (YYYY-MM-DD)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: _selectedPriority,
+          items: ['High', 'Low', 'All']
+              .map((String priority) => DropdownMenuItem(
+                    value: priority,
+                    child: Text(priority),
+                  ))
+              .toList(),
+          onChanged: (newValue) {
+            setState(() {
+              _selectedPriority = newValue!;
+            });
+          },
+          decoration: InputDecoration(
+            labelText: 'Priority',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: _addTask,
+          child: Text('Add Task'),
+        ),
+      ],
+    );
+  }
 }
 
-// Task Model
 class Task {
-  String title;
-  String assignedTo;
-  String priority;
-  DateTime dueDate;
+  final String title;
+  final String assignedTo;
+  final String priority;
+  final DateTime dueDate;
 
   Task({
     required this.title,
@@ -155,106 +289,29 @@ class Task {
     required this.priority,
     required this.dueDate,
   });
-
-  get date => null;
 }
 
-// Placeholder for Add Task Page
-class AddTaskPage extends StatelessWidget {
-  final Function(Task) onAddTask;
-
-  AddTaskPage({required this.onAddTask});
-
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController assignedToController = TextEditingController();
-  final TextEditingController priorityController = TextEditingController();
-  DateTime dueDate = DateTime.now();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Task'),
-        backgroundColor: Color(0xFF08B797),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: InputDecoration(labelText: 'Task Title'),
-            ),
-            TextField(
-              controller: assignedToController,
-              decoration: InputDecoration(labelText: 'Assigned To'),
-            ),
-            TextField(
-              controller: priorityController,
-              decoration: InputDecoration(labelText: 'Priority'),
-            ),
-            SizedBox(height: 10),
-            Text('Due Date: ${DateFormat('yyyy-MM-dd').format(dueDate)}'),
-            ElevatedButton(
-              onPressed: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: dueDate,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2101),
-                );
-                if (picked != null && picked != dueDate) {
-                  dueDate = picked;
-                }
-              },
-              child: Text('Select Due Date'),
-            ),
-            SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  final task = Task(
-                    title: titleController.text,
-                    assignedTo: assignedToController.text,
-                    priority: priorityController.text,
-                    dueDate: dueDate,
-                  );
-                  onAddTask(task);
-                  Navigator.pop(context);
-                },
-                child: Text('Add Task'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF08B797),
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Placeholder for Edit Task Page
 class EditTaskPage extends StatelessWidget {
   final Task task;
   final int index;
-  final Function(int, Task) onEditTask;
+  final Function(Task) onEditTask;
 
-  EditTaskPage({required this.task, required this.index, required this.onEditTask});
-
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController assignedToController = TextEditingController();
-  final TextEditingController priorityController = TextEditingController();
+  const EditTaskPage({
+    required this.task,
+    required this.index,
+    required this.onEditTask,
+  });
 
   @override
   Widget build(BuildContext context) {
-    titleController.text = task.title;
-    assignedToController.text = task.assignedTo;
-    priorityController.text = task.priority;
+    final TextEditingController _taskTitleController =
+        TextEditingController(text: task.title);
+    final TextEditingController _taskAssignedToController =
+        TextEditingController(text: task.assignedTo);
+    final TextEditingController _taskDueDateController =
+        TextEditingController(text: DateFormat('yyyy-MM-dd').format(task.dueDate));
+
+    String _priority = task.priority;
 
     return Scaffold(
       appBar: AppBar(
@@ -264,40 +321,49 @@ class EditTaskPage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: titleController,
+              controller: _taskTitleController,
               decoration: InputDecoration(labelText: 'Task Title'),
             ),
+            SizedBox(height: 10),
             TextField(
-              controller: assignedToController,
+              controller: _taskAssignedToController,
               decoration: InputDecoration(labelText: 'Assigned To'),
             ),
+            SizedBox(height: 10),
             TextField(
-              controller: priorityController,
+              controller: _taskDueDateController,
+              keyboardType: TextInputType.datetime,
+              decoration: InputDecoration(labelText: 'Due Date'),
+            ),
+            SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: _priority,
+              items: ['High', 'Low']
+                  .map((String priority) => DropdownMenuItem(
+                        value: priority,
+                        child: Text(priority),
+                      ))
+                  .toList(),
+              onChanged: (newValue) {
+                _priority = newValue!;
+              },
               decoration: InputDecoration(labelText: 'Priority'),
             ),
-            SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  final updatedTask = Task(
-                    title: titleController.text,
-                    assignedTo: assignedToController.text,
-                    priority: priorityController.text,
-                    dueDate: task.dueDate, // Assuming you want to keep the same due date
-                  );
-                  onEditTask(index, updatedTask);
-                  Navigator.pop(context);
-                },
-                child: Text('Update Task'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF08B797),
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: TextStyle(fontSize: 16),
-                ),
-              ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                Task updatedTask = Task(
+                  title: _taskTitleController.text,
+                  assignedTo: _taskAssignedToController.text,
+                  priority: _priority,
+                  dueDate: DateTime.parse(_taskDueDateController.text),
+                );
+                onEditTask(updatedTask);
+                Navigator.pop(context);
+              },
+              child: Text('Save Changes'),
             ),
           ],
         ),

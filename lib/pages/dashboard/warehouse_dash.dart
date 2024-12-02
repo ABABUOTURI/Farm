@@ -35,12 +35,12 @@ class _WarehouseStaffDashboardPageState
               'Inventory Management',
               InventoryManagementPage(),
             ),
-            _dashboardCard(
-              context,
-              Icons.check_circle,
-              'Task Scheduling',
-              WarehouseStaffTaskSchedulingPage(),
-            ),
+            //_dashboardCard(
+              //context,
+              //Icons.check_circle,
+              //'Task Scheduling',
+              //WarehouseStaffTaskSchedulingPage(),
+            //),
             _dashboardCard(
               context,
               Icons.build,
