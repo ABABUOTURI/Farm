@@ -1,13 +1,136 @@
 import 'package:flutter/material.dart';
-import 'package:pdf/widgets.dart' as pw; // For PDF generation
-import 'package:excel/excel.dart'; // For Excel export
+import 'package:hive/hive.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:permission_handler/permission_handler.dart';  // Add this import
 
-class SupervisorReportingPage extends StatefulWidget {
+import '../../../../models/inventory_item.dart';
+import '../../../../models/equipment.dart'; // Import the Equipment model
+import '../../../../models/supplier_model.dart';
+import '../../../../models/task.dart';
+
+class ReportingPage extends StatefulWidget {
   @override
-  _SupervisorReportingPageState createState() => _SupervisorReportingPageState();
+  _ReportingPageState createState() => _ReportingPageState();
 }
 
-class _SupervisorReportingPageState extends State<SupervisorReportingPage> {
+class _ReportingPageState extends State<ReportingPage> {
+  Map<String, String> reportData = {};
+  late Box<InventoryItem> inventoryBox;
+  late Box<Equipment> equipmentBox;
+  late Box<Supplier> supplierBox;
+  late Box<Task> taskBox;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReportData();
+    _openInventoryBox();
+    _openEquipmentBox();
+    _openSupplierBox();
+    _openTaskBox();
+  }
+
+  // Fetch report data from Hive
+  Future<void> _fetchReportData() async {
+    var box = await Hive.openBox('reportBox');
+    setState(() {
+      reportData = {
+        'Usage Report': box.get('usageReport', defaultValue: 'No data available'),
+        'Low Stock Report': box.get('lowStockReport', defaultValue: 'No data available'),
+        'Maintenance History': box.get('maintenanceHistory', defaultValue: 'No data available'),
+        'Equipment Usage': box.get('equipmentUsage', defaultValue: 'No data available'),
+        'Task Overview': box.get('taskOverview', defaultValue: 'No data available'),
+        'Task Performance': box.get('taskPerformance', defaultValue: 'No data available'),
+        'Supplier Details': box.get('supplierDetails', defaultValue: 'No data available'),
+        'Supplier Performance': box.get('supplierPerformance', defaultValue: 'No data available'),
+        'Crop Health': box.get('cropHealth', defaultValue: 'No data available'),
+        'Livestock Health': box.get('livestockHealth', defaultValue: 'No data available'),
+      };
+    });
+  }
+
+  // Open the inventory box
+  Future<void> _openInventoryBox() async {
+    inventoryBox = await Hive.openBox<InventoryItem>('inventoryBox');
+    setState(() {});
+  }
+
+  // Open the equipment box
+  Future<void> _openEquipmentBox() async {
+    equipmentBox = await Hive.openBox<Equipment>('equipmentBox');
+    setState(() {});
+  }
+
+  // Open the supplier box
+  Future<void> _openSupplierBox() async {
+    supplierBox = await Hive.openBox<Supplier>('supplierBox');
+    setState(() {});
+  }
+
+  // Open the task box
+  Future<void> _openTaskBox() async {
+    taskBox = await Hive.openBox<Task>('taskBox');
+    setState(() {});
+  }
+
+  // Build PDF document
+  Future<void> _generatePdf() async {
+    final pdf = pw.Document();
+
+    // Add Inventory section
+    pdf.addPage(pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          children: inventoryBox.values.map((item) => pw.Text('Item Name: ${item.name}\nQuantity: ${item.quantity}\n')).toList(),
+        );
+      },
+    ));
+
+    // Add Equipment section
+    pdf.addPage(pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          children: equipmentBox.values.map((equipment) {
+            return pw.Text(
+              'Equipment Name: ${equipment.name}\n'
+              'Quantity: ${equipment.quantity}\n'
+              'Unit: ${equipment.unit}\n'
+              'Type: ${equipment.type}',
+            );
+          }).toList(),
+        );
+      },
+    ));
+
+    // Add Supplier section
+    pdf.addPage(pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          children: supplierBox.values.map((supplier) => pw.Text('Supplier Name: ${supplier.name}\n')).toList(),
+        );
+      },
+    ));
+
+    // Add Task section
+    pdf.addPage(pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          children: taskBox.values.map((task) => pw.Text('Task Title: ${task.title}\nAssigned To: ${task.assignedTo}\n')).toList(),
+        );
+      },
+    ));
+
+    // Save the PDF file to local storage
+    final output = await getExternalStorageDirectory();
+    final file = File("${output!.path}/report.pdf");
+    await file.writeAsBytes(await pdf.save());
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF saved to ${file.path}')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,50 +145,46 @@ class _SupervisorReportingPageState extends State<SupervisorReportingPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Inventory Report Section
-              Text(
-                'Inventory Reports',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildReportCard(
-                  'Usage Report', 'Generate usage history report for inventory', Icons.inventory, _generateInventoryReport),
-              _buildReportCard(
-                  'Low Stock Report', 'Generate low stock alert report', Icons.warning, _generateLowStockReport),
               SizedBox(height: 20),
 
-              // Equipment Report Section
-              Text(
-                'Equipment Reports',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildReportCard(
-                  'Maintenance History', 'View equipment maintenance history', Icons.build, _generateMaintenanceReport),
-              _buildReportCard(
-                  'Usage Report', 'Generate equipment usage report', Icons.settings, _generateEquipmentUsageReport),
+              // Inventory Reports Section
+              _buildSectionHeader('Inventory Reports'),
+              ...inventoryBox.values.map((item) => _buildInventoryItemDetails(item)).toList(),
               SizedBox(height: 20),
 
-              // Task Completion Report Section
-              Text(
-                'Task Completion Reports',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildReportCard(
-                  'Completed Tasks', 'Generate report of completed tasks', Icons.check_circle, _generateTaskCompletionReport),
-              _buildReportCard(
-                  'Pending Tasks', 'Generate report of pending tasks', Icons.pending, _generatePendingTaskReport),
+              // Equipment Reports Section
+              _buildSectionHeader('Equipment Reports'),
+              ...equipmentBox.values.map((equipment) => _buildEquipmentDetails(equipment)).toList(),
               SizedBox(height: 20),
 
-              // Export Section
-              Text(
-                'Export Reports',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              // Supplier Reports Section
+              _buildSectionHeader('Supplier Reports'),
+              ...supplierBox.values.map((supplier) => _buildSupplierDetails(supplier)).toList(),
+              SizedBox(height: 20),
+
+              // Task Reports Section
+              _buildSectionHeader('Task Reports'),
+              ...taskBox.values.map((task) => _buildTaskDetails(task)).toList(),
+              SizedBox(height: 20),
+
+              // Export Reports Section
+              Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final status = await Permission.storage.request();
+                    if (status.isGranted) {
+                      _generatePdf();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Storage permission required!')));
+                    }
+                  },
+                  child: Text('Export to PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF08B797),
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  ),
+                ),
               ),
-              SizedBox(height: 10),
-              _buildExportCard('Export to PDF', 'Export the current report to PDF format', Icons.picture_as_pdf, _exportToPDF),
-              _buildExportCard('Export to Excel', 'Export the current report to Excel format', Icons.table_chart, _exportToExcel),
             ],
           ),
         ),
@@ -73,79 +192,69 @@ class _SupervisorReportingPageState extends State<SupervisorReportingPage> {
     );
   }
 
-  // Method to build report card
-  Widget _buildReportCard(String title, String description, IconData icon, Function onPressed) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: ListTile(
-        leading: Icon(icon, size: 40, color: Color(0xFF08B797)),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(description),
-        trailing: IconButton(
-          icon: Icon(Icons.arrow_forward),
-          onPressed: () => onPressed(),
-        ),
-      ),
+  // Build section headers
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF08B797)),
     );
   }
 
-  // Method to build export card
-  Widget _buildExportCard(String title, String description, IconData icon, Function onPressed) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: ListTile(
-        leading: Icon(icon, size: 40, color: Color(0xFF08B797)),
-        title: Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(description),
-        trailing: IconButton(
-          icon: Icon(Icons.file_download),
-          onPressed: () => onPressed(),
-        ),
-      ),
+  // Build inventory item details
+  Widget _buildInventoryItemDetails(InventoryItem item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Item Name: ${item.name}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('Quantity: ${item.quantity}', style: TextStyle(fontSize: 14)),
+        Text('Unit: ${item.unit}', style: TextStyle(fontSize: 14)),
+        Text('Item Type: ${item.type}', style: TextStyle(fontSize: 14)),
+        SizedBox(height: 10),
+        Divider(),
+      ],
     );
   }
 
-  // Placeholder methods for generating reports
-  void _generateInventoryReport() {
-    // Add logic for generating the inventory usage report
-    print('Generating Inventory Usage Report...');
+  // Build equipment details
+  Widget _buildEquipmentDetails(Equipment equipment) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Equipment Name: ${equipment.name}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('Quantity: ${equipment.quantity}', style: TextStyle(fontSize: 14)),
+        Text('Unit: ${equipment.unit}', style: TextStyle(fontSize: 14)),
+        Text('Type: ${equipment.type}', style: TextStyle(fontSize: 14)),
+        SizedBox(height: 10),
+        Divider(),
+      ],
+    );
   }
 
-  void _generateLowStockReport() {
-    // Add logic for generating the low stock report
-    print('Generating Low Stock Report...');
+  // Build supplier details
+  Widget _buildSupplierDetails(Supplier supplier) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Supplier Name: ${supplier.name}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('Contact: ${supplier.contact}', style: TextStyle(fontSize: 14)),
+        Text('Email: ${supplier.email}', style: TextStyle(fontSize: 14)),
+        SizedBox(height: 10),
+        Divider(),
+      ],
+    );
   }
 
-  void _generateMaintenanceReport() {
-    // Add logic for generating the equipment maintenance report
-    print('Generating Maintenance History Report...');
-  }
-
-  void _generateEquipmentUsageReport() {
-    // Add logic for generating the equipment usage report
-    print('Generating Equipment Usage Report...');
-  }
-
-  void _generateTaskCompletionReport() {
-    // Add logic for generating the completed tasks report
-    print('Generating Completed Tasks Report...');
-  }
-
-  void _generatePendingTaskReport() {
-    // Add logic for generating the pending tasks report
-    print('Generating Pending Tasks Report...');
-  }
-
-  // Placeholder methods for exporting reports
-  void _exportToPDF() {
-    // Add logic to export the report to PDF
-    print('Exporting report to PDF...');
-  }
-
-  void _exportToExcel() {
-    // Add logic to export the report to Excel
-    print('Exporting report to Excel...');
+  // Build task details
+  Widget _buildTaskDetails(Task task) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Task Title: ${task.title}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text('Assigned To: ${task.assignedTo}', style: TextStyle(fontSize: 14)),
+        Text('Due Date: ${task.dueDate.toLocal().toString().split(' ')[0]}', style: TextStyle(fontSize: 14)),
+        SizedBox(height: 10),
+        Divider(),
+      ],
+    );
   }
 }

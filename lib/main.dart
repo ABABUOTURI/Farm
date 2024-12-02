@@ -29,7 +29,7 @@ void main() async {
   // Open boxes asynchronously
   await Future.wait([
     Hive.openBox<User>('usersBox'),
-    Hive.openBox<Task>('tasksBox'),
+    Hive.openBox<Task>('taskBox'),
     Hive.openBox<NotificationModel>('notificationsBox'),
     Hive.openBox<Supplier>('suppliersBox'),
     Hive.openBox<InventoryItem>('inventoryBox'),

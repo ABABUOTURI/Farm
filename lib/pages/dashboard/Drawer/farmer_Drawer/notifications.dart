@@ -1,7 +1,86 @@
-// notification_center_page.dart
+import 'package:farm_system_inventory/models/equipment.dart';
+import 'package:farm_system_inventory/models/inventory_item.dart';
+import 'package:farm_system_inventory/models/task.dart';
+import 'package:farm_system_inventory/models/supplier_model.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-class NotificationCenterPage extends StatelessWidget {
+class WarehouseStaffNotificationCenterPage extends StatefulWidget {
+  @override
+  _WarehouseStaffNotificationCenterPageState createState() =>
+      _WarehouseStaffNotificationCenterPageState();
+}
+
+class _WarehouseStaffNotificationCenterPageState
+    extends State<WarehouseStaffNotificationCenterPage> {
+  List<NotificationItem> notifications = [];
+  bool _isLoading = true;
+  String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  // Fetch notifications from Hive models
+  void _fetchNotifications() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    notifications.clear();
+
+    // Fetch Equipment notifications
+    var equipmentBox = await Hive.openBox<Equipment>('equipmentBox');
+    for (var equipment in equipmentBox.values) {
+      notifications.add(NotificationItem(
+        title: 'Equipment Added: ${equipment.name}',
+        message: 'Quantity: ${equipment.quantity}, Unit: ${equipment.unit}, Type: ${equipment.type}',
+        type: NotificationType.equipment,
+        date: DateTime.now(), // You can customize this date based on your logic
+      ));
+    }
+
+    // Fetch Inventory notifications
+    var inventoryBox = await Hive.openBox<InventoryItem>('inventoryBox');
+    for (var inventoryItem in inventoryBox.values) {
+      notifications.add(NotificationItem(
+        title: 'Inventory Alert: ${inventoryItem.name}',
+        message: 'Quantity: ${inventoryItem.quantity}, Category: ${inventoryItem.category}',
+        type: NotificationType.inventory,
+        date: DateTime.now(), // Assuming current date
+      ));
+    }
+
+    // Fetch Task notifications
+    var taskBox = await Hive.openBox<Task>('tasksBox');
+    for (var task in taskBox.values) {
+      notifications.add(NotificationItem(
+        title: 'New Task: ${task.task}',
+        message: 'Priority: ${task.priority}, Assigned to: ${task.assignedTo}',
+        type: NotificationType.task,
+        date: DateTime.now(),
+      ));
+    }
+
+    // Fetch Supplier notifications
+    var supplierBox = await Hive.openBox<Supplier>('suppliersBox');
+    for (var supplier in supplierBox.values) {
+      notifications.add(NotificationItem(
+        title: 'Supplier Added: ${supplier.name}',
+        message: 'Products: ${supplier.products}, Contact: ${supplier.contact}',
+        type: NotificationType.supplier,
+        date: DateTime.now(),
+      ));
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -9,116 +88,126 @@ class NotificationCenterPage extends StatelessWidget {
         title: Text('Notification Center'),
         backgroundColor: Color(0xFF08B797),
       ),
-      backgroundColor: Color(0xFFEEEDEA),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 20), // Added space to accommodate AppBar height
-
-              // Notification Settings Section
-              Text(
-                'Notification Settings',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildNotificationSettingCard('Low Stock Alert', 'Receive alerts when inventory is running low', true),
-              _buildNotificationSettingCard('Equipment Maintenance', 'Get notified about upcoming equipment maintenance', true),
-              _buildNotificationSettingCard('Overdue Tasks', 'Alerts for tasks that are overdue', false),
-              SizedBox(height: 20),
-
-              // Alerts and Notifications Section
-              Text(
-                'Alerts & Notifications',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              _buildNotificationCard('Low Stock', 'Inventory for feed is below the required level'),
-              _buildNotificationCard('Maintenance Due', 'Tractor maintenance scheduled for next week'),
-              _buildNotificationCard('Overdue Task', 'Planting scheduled last week is not completed yet'),
-              SizedBox(height: 20),
-
-              // Customize Settings Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Handle customization of notification settings
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Customize notification settings feature coming soon!')),
-                    );
-                  },
-                  child: Text('Customize Settings'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF08B797),
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    textStyle: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Method to build notification setting card
-  Widget _buildNotificationSettingCard(String title, String description, bool isEnabled) {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 5),
-                  Text(description),
-                ],
-              ),
-            ),
-            Switch(
-              value: isEnabled,
-              onChanged: (bool value) {
-                // Handle enabling/disabling notification
-                // This is just a placeholder for now
+      body: Column(
+        children: [
+          // Filter dropdown
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: DropdownButton<String>(
+              value: _selectedFilter,
+              items: [
+                'All',
+                'Equipment',
+                'Inventory',
+                'Task',
+                'Supplier',
+              ].map((filter) {
+                return DropdownMenuItem(
+                  value: filter,
+                  child: Text(filter),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedFilter = value!;
+                });
               },
-              activeColor: Color(0xFF08B797),
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator()) // Loading indicator
+                : notifications.isEmpty
+                    ? Center(child: Text('No notifications available.'))
+                    : ListView.builder(
+                        itemCount: filteredNotifications().length,
+                        itemBuilder: (context, index) {
+                          return _buildNotificationCard(
+                              filteredNotifications()[index]);
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }
 
-  // Method to build notification card
-  Widget _buildNotificationCard(String title, String message) {
+  // Filtered notifications based on the selected filter
+  List<NotificationItem> filteredNotifications() {
+    if (_selectedFilter == 'All') {
+      return notifications;
+    }
+    return notifications
+        .where((notification) =>
+            notification.type.name.toLowerCase() ==
+            _selectedFilter.toLowerCase())
+        .toList();
+  }
+
+  // Notification card builder
+  Widget _buildNotificationCard(NotificationItem notification) {
     return Card(
       elevation: 2,
-      color: Colors.white,
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              title,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              notification.title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 5),
-            Text(message),
+            Text(notification.message),
+            SizedBox(height: 5),
+            Text(
+              '${notification.date.toLocal()}'.split(' ')[0], // Display date only
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+// Notification model
+class NotificationItem {
+  final String title;
+  final String message;
+  final NotificationType type;
+  final DateTime date;
+
+  NotificationItem({
+    required this.title,
+    required this.message,
+    required this.type,
+    required this.date,
+  });
+}
+
+// Notification types
+enum NotificationType {
+  equipment,
+  inventory,
+  task,
+  supplier,
+}
+
+extension NotificationTypeExtension on NotificationType {
+  String get name {
+    switch (this) {
+      case NotificationType.equipment:
+        return 'Equipment';
+      case NotificationType.inventory:
+        return 'Inventory';
+      case NotificationType.task:
+        return 'Task';
+      case NotificationType.supplier:
+        return 'Supplier';
+      default:
+        return '';
+    }
   }
 }

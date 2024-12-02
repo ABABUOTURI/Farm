@@ -1,3 +1,4 @@
+import 'package:farm_system_inventory/pages/dashboard/Drawer/Warehouse_Drawer/NotificationWarehouseStaff.dart';
 import 'package:flutter/material.dart';
 import '../use_management/suppliervendor_management.dart';
 import 'Drawer/Supervisor_Drawer/CLManagement.dart';
@@ -55,13 +56,13 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
               context,
               Icons.report,
               'Reporting',
-              SupervisorReportingPage(),
+              ReportingPage(),
             ),
             _dashboardCard(
               context,
               Icons.notifications,
               'Notifications',
-              SupervisorNotificationCenterPage(),
+               WarehouseStaffNotificationCenterPage(),
             ),
             _dashboardCard(
               context,
@@ -72,65 +73,7 @@ class _SupervisorDashboardPageState extends State<SupervisorDashboardPage> {
           ],
         ),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xFF08B797),
-              ),
-              child: Text(
-                'Supervisor Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.agriculture),
-              title: Text('Crop & Livestock Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorCropAndLivestockManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.build),
-              title: Text('Equipment Management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorEquipmentManagementPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.report),
-              title: Text('Reporting'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorReportingPage()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.notifications),
-              title: Text('Notifications'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SupervisorNotificationCenterPage()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
+      
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 
-part 'task.g.dart'; // This part is required for Hive type adapter generation
+part 'task.g.dart'; // Hive type adapter generation
 
 @HiveType(typeId: 6)
 class Task {
@@ -14,23 +14,26 @@ class Task {
   final String priority;
 
   @HiveField(3)
-  final DateTime date;
+  final DateTime dueDate;
 
   @HiveField(4)
-  final String task;
+  final String task;  // You can expand the task field if needed
 
-  var dueDate;
-
+  // Additional fields for task status and description
+  @HiveField(5)
   var status;
 
+  @HiveField(6)
   var description;
 
   Task({
     required this.title,
     required this.assignedTo,
     required this.priority,
-    required this.date,
-    this.task = 'Default Task', // Provide a default value for 'task'
+    required this.dueDate,
+    this.task = 'Default Task', // Default task value
+    this.status = 'Pending',  // Default status
+    this.description = '',    // Default description
   });
 
   // Method to convert Task to a map
@@ -39,8 +42,10 @@ class Task {
       'title': title,
       'assignedTo': assignedTo,
       'priority': priority,
-      'date': date.toIso8601String(),
+      'dueDate': dueDate.toIso8601String(),
       'task': task,
+      'status': status,
+      'description': description,
     };
   }
 
@@ -50,8 +55,10 @@ class Task {
       title: map['title'],
       assignedTo: map['assignedTo'],
       priority: map['priority'],
-      date: DateTime.parse(map['date']),
-      task: map['task'] ?? 'Default Task', // Default task value
+      dueDate: DateTime.parse(map['dueDate']),
+      task: map['task'] ?? 'Default Task',
+      status: map['status'] ?? 'Pending',
+      description: map['description'] ?? '',
     );
   }
 }

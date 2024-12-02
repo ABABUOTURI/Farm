@@ -1,4 +1,5 @@
 import 'package:farm_system_inventory/pages/dashboard/Drawer/Supervisor_Drawer/TaskSupervisor.dart';
+import 'package:farm_system_inventory/pages/dashboard/Drawer/Warehouse_Drawer/NotificationWarehouseStaff.dart';
 import 'package:farm_system_inventory/pages/dashboard/Drawer/farmer_Drawer/inventory_management.dart';
 import 'package:farm_system_inventory/pages/dashboard/Drawer/farmer_Drawer/reporting.dart';
 import 'package:farm_system_inventory/pages/use_management/croplivestock_management.dart';
@@ -79,6 +80,12 @@ class _DashboardPageState extends State<DashboardPage> {
               Icons.shopping_cart,
               'Supplier & Vendor Management',
               SupplierVendorManagementPage(),
+            ),
+            _dashboardCard(
+              context,
+              Icons.notifications,
+              'Notifications',
+              WarehouseStaffNotificationCenterPage(),
             ),
           ],
         ),
