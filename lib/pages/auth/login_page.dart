@@ -24,6 +24,11 @@ class _LoginPageState extends State<LoginPage> {
       String password = passwordController.text.trim();
 
       try {
+        // Ensure no cached user session
+        if (_auth.currentUser != null) {
+          await _auth.signOut(); // Sign out if a user is already signed in
+        }
+
         // Authenticate with Firebase
         UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: email,
@@ -31,27 +36,35 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (userCredential.user != null) {
-          // Fetch user role from Firestore
-          DocumentSnapshot userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .get();
-
-          if (userDoc.exists) {
-            String userRole = userDoc['role'] ?? '';
-            _navigateToDashboard(userRole);
-          } else {
-            _showErrorDialog('User data not found in database');
-          }
+          await _fetchAndNavigate(userCredential.user!.uid);
         }
       } on FirebaseAuthException catch (e) {
-        _showErrorDialog(e.message ?? 'Authentication failed');
+        String errorMessage = _getFirebaseAuthError(e);
+        _showErrorDialog(errorMessage);
       } catch (e) {
-        _showErrorDialog('An error occurred: $e');
+        _showErrorDialog('An unexpected error occurred: $e');
       }
     }
   }
 
+  // Fetch user data and navigate to the respective dashboard
+  Future<void> _fetchAndNavigate(String uid) async {
+    try {
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (userDoc.exists) {
+        String userRole = userDoc['role'] ?? '';
+        _navigateToDashboard(userRole);
+      } else {
+        _showErrorDialog('User data not found in the database');
+      }
+    } catch (e) {
+      _showErrorDialog('Failed to fetch user data: $e');
+    }
+  }
+
+  // Navigate to the respective dashboard based on the user's role
   void _navigateToDashboard(String role) {
     switch (role) {
       case 'Farm Manager':
@@ -79,6 +92,21 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // Helper function to map FirebaseAuthException to user-friendly error messages
+  String _getFirebaseAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No user found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password entered.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      default:
+        return 'An authentication error occurred. Please try again.';
+    }
+  }
+
+  // Show error dialog with the given message
   void _showErrorDialog(String message) {
     showDialog(
       context: context,

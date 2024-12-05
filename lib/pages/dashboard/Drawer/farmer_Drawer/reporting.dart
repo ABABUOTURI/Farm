@@ -21,42 +21,16 @@ class _ReportingPageState extends State<ReportingPage> {
   Map<String, dynamic> inventoryData = {};
   Map<String, dynamic> cropsData = {};
   Map<String, dynamic> livestockData = {};
+  Map<String, dynamic> equipmentData = {}; // New equipment data map
   bool isDownloading = false; // Track downloading state
 
   @override
   void initState() {
     super.initState();
-    _fetchTasksData();
     _fetchInventoryData();
     _fetchCropsData();
     _fetchLivestockData();
-  }
-
-  // Fetch tasks data from Firestore
-  Future<void> _fetchTasksData() async {
-    try {
-      QuerySnapshot tasksSnapshot = await _firestore.collection('tasks').get();
-
-      if (tasksSnapshot.docs.isNotEmpty) {
-        setState(() {
-          tasksData = {
-            'Tasks Report': tasksSnapshot.docs.map((doc) {
-              var task = doc.data() as Map<String, dynamic>;
-              return 'Title: ${task['title']}, Deadline: ${task['deadline']}, Priority: ${task['priority']}, Status: ${task['status']}';
-            }).join('\n'),
-          };
-        });
-      } else {
-        setState(() {
-          tasksData = {'Tasks Report': 'No tasks available'};
-        });
-      }
-    } catch (e) {
-      print('Error fetching tasks data: $e');
-      setState(() {
-        tasksData = {'Tasks Report': 'Failed to load tasks data'};
-      });
-    }
+    _fetchEquipmentData(); // Fetch equipment data
   }
 
   // Fetch inventory data from Firestore
@@ -142,6 +116,34 @@ class _ReportingPageState extends State<ReportingPage> {
     }
   }
 
+  // Fetch equipment data from Firestore
+  Future<void> _fetchEquipmentData() async {
+    try {
+      QuerySnapshot equipmentSnapshot =
+          await _firestore.collection('equipment').get();
+
+      if (equipmentSnapshot.docs.isNotEmpty) {
+        setState(() {
+          equipmentData = {
+            'Equipment Report': equipmentSnapshot.docs.map((doc) {
+              var equipment = doc.data() as Map<String, dynamic>;
+              return 'Equipment: ${equipment['name']}, Condition: ${equipment['condition']}';
+            }).join('\n'),
+          };
+        });
+      } else {
+        setState(() {
+          equipmentData = {'Equipment Report': 'No equipment data available'};
+        });
+      }
+    } catch (e) {
+      print('Error fetching equipment data: $e');
+      setState(() {
+        equipmentData = {'Equipment Report': 'Failed to load equipment data'};
+      });
+    }
+  }
+
   // Build PDF document
   Future<File> _generatePdf(
       Map<String, dynamic> data, String reportTitle) async {
@@ -222,10 +224,13 @@ class _ReportingPageState extends State<ReportingPage> {
             children: [
               // Display Reports
               ...[
-                {'data': tasksData, 'title': 'Tasks Report'},
                 {'data': inventoryData, 'title': 'Inventory Report'},
                 {'data': cropsData, 'title': 'Crops Report'},
                 {'data': livestockData, 'title': 'Livestock Report'},
+                {
+                  'data': equipmentData,
+                  'title': 'Equipment Report'
+                }, // Equipment report
               ].map((report) {
                 Map<String, dynamic> data =
                     report['data'] as Map<String, dynamic>;
