@@ -1,14 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:farm_system_inventory/models/supplier_model.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 class SupplierVendorManagementPage extends StatefulWidget {
   @override
-  _SupplierVendorManagementPageState createState() => _SupplierVendorManagementPageState();
+  _SupplierVendorManagementPageState createState() =>
+      _SupplierVendorManagementPageState();
 }
 
-class _SupplierVendorManagementPageState extends State<SupplierVendorManagementPage> {
+class _SupplierVendorManagementPageState
+    extends State<SupplierVendorManagementPage> {
   late Box<Supplier> supplierBox;
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -84,15 +88,27 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
     );
   }
 
-  // Method to add a new supplier to Hive
-  void _addSupplier(String name, String contact, String products, String performance) async {
+  // Method to add a new supplier to Firestore and Hive
+  void _addSupplier(
+      String name, String contact, String products, String performance) async {
     Supplier newSupplier = Supplier(
       name: name,
       contact: contact,
       products: products,
       performance: performance,
     );
+
+    // Save to Hive
     await supplierBox.add(newSupplier);
+
+    // Save to Firestore
+    await firestore.collection('suppliers').add({
+      'name': name,
+      'contact': contact,
+      'products': products,
+      'performance': performance,
+    });
+
     setState(() {}); // Refresh the UI
   }
 
@@ -120,7 +136,8 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
                     SizedBox(height: 20),
                     Text(
                       'Suppliers & Vendors',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 10),
                     ListView.builder(
@@ -138,7 +155,8 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
                         child: Text('Add Supplier'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF08B797),
-                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
                           textStyle: TextStyle(fontSize: 16),
                         ),
                       ),
@@ -147,7 +165,9 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
                 ),
               ),
             )
-          : Center(child: CircularProgressIndicator()), // Show loading indicator until box is ready
+          : Center(
+              child:
+                  CircularProgressIndicator()), // Show loading indicator until box is ready
     );
   }
 
@@ -165,11 +185,14 @@ class _SupplierVendorManagementPageState extends State<SupplierVendorManagementP
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 5),
-            Text('Contact: ${supplier.contact}', style: TextStyle(fontSize: 16)),
+            Text('Contact: ${supplier.contact}',
+                style: TextStyle(fontSize: 16)),
             SizedBox(height: 5),
-            Text('Products: ${supplier.products}', style: TextStyle(fontSize: 16)),
+            Text('Products: ${supplier.products}',
+                style: TextStyle(fontSize: 16)),
             SizedBox(height: 5),
-            Text('Performance: ${supplier.performance}', style: TextStyle(fontSize: 16)),
+            Text('Performance: ${supplier.performance}',
+                style: TextStyle(fontSize: 16)),
             SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,

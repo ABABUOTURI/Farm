@@ -1,12 +1,15 @@
 plugins {
     id "com.android.application"
+    // START: Firebase Configuration
+    id "com.google.gms.google-services" // Firebase plugin
+    // END: Firebase Configuration
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace = "com.example.farm_system_inventory"
+    namespace = "com.fam.app" // Updated namespace
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,29 +19,54 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.farm_system_inventory"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        applicationId = "com.fam.app" // Updated application ID to match Firebase
+        minSdk = 23 // Updated to meet Firebase and Android requirements
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Enable multidex to handle method limit
+        multiDexEnabled true
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            // Configure signing for the release build
+            signingConfig signingConfigs.debug
+            minifyEnabled true // Enable code shrinking
+            shrinkResources true // Enable resource shrinking
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            signingConfig signingConfigs.debug
+            minifyEnabled false // Disable shrinking for debug builds
+            shrinkResources false
+        }
+    }
+
+    // Add dynamic features if your project uses them
+    dynamicFeatures = [] // Example: ':dynamic_feature'
+
+    lintOptions {
+        abortOnError false
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Multidex support
+    implementation "androidx.multidex:multidex:2.0.1"
+
+    // Firebase dependencies using BOM
+    implementation platform('com.google.firebase:firebase-bom:32.2.0')
+    implementation 'com.google.firebase:firebase-analytics' // Example Firebase dependency
+
+    // Add additional dependencies as needed
 }

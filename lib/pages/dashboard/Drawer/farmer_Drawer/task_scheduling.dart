@@ -1,9 +1,48 @@
-import 'package:farm_system_inventory/models/task.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
+
+class Task {
+  String id;
+  String title;
+  String assignedTo;
+  String priority;
+  DateTime dueDate;
+
+  Task({
+    this.id = '',
+    required this.title,
+    required this.assignedTo,
+    required this.priority,
+    required this.dueDate,
+  });
+
+  // Convert a Firestore document to a Task instance
+  factory Task.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map;
+    return Task(
+      id: doc.id,
+      title: data['title'],
+      assignedTo: data['assignedTo'],
+      priority: data['priority'],
+      dueDate: DateTime.parse(data['dueDate']),
+    );
+  }
+
+  // Convert Task to a map for saving to Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'assignedTo': assignedTo,
+      'priority': priority,
+      'dueDate': dueDate.toIso8601String(),
+    };
+  }
+}
 
 class SupervisorTaskSchedulingPage extends StatefulWidget {
+  const SupervisorTaskSchedulingPage({super.key});
+
   @override
   _SupervisorTaskSchedulingPageState createState() =>
       _SupervisorTaskSchedulingPageState();
@@ -11,20 +50,13 @@ class SupervisorTaskSchedulingPage extends StatefulWidget {
 
 class _SupervisorTaskSchedulingPageState
     extends State<SupervisorTaskSchedulingPage> {
-  late Box<Task> taskBox;
   String _selectedPriority = 'All';
 
+  // Controllers for form inputs
   final TextEditingController _taskTitleController = TextEditingController();
   final TextEditingController _taskAssignedToController =
       TextEditingController();
   final TextEditingController _taskDueDateController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    Hive.initFlutter();
-    _openTaskBox();
-  }
 
   @override
   void dispose() {
@@ -34,27 +66,36 @@ class _SupervisorTaskSchedulingPageState
     super.dispose();
   }
 
-  // Open Hive box to store and retrieve tasks
-  Future<void> _openTaskBox() async {
-    taskBox = await Hive.openBox<Task>('taskBox');
-    setState(() {});
-  }
-
-  // Add new task
-  void _addTask() {
+  // Method to add a new task
+  void _addTask() async {
     String taskTitle = _taskTitleController.text.trim();
     String taskAssignedTo = _taskAssignedToController.text.trim();
     DateTime? taskDueDate = DateTime.tryParse(_taskDueDateController.text);
 
-    if (taskTitle.isNotEmpty && taskAssignedTo.isNotEmpty && taskDueDate != null) {
+    if (taskTitle.isNotEmpty &&
+        taskAssignedTo.isNotEmpty &&
+        taskDueDate != null) {
       Task newTask = Task(
         title: taskTitle,
         assignedTo: taskAssignedTo,
         priority: _selectedPriority,
         dueDate: taskDueDate,
       );
-      taskBox.add(newTask);  // Add task to Hive box
-      _clearInputFields();
+
+      try {
+        // Save the task to Firestore
+        await FirebaseFirestore.instance
+            .collection('tasks')
+            .add(newTask.toMap());
+        _clearInputFields();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Task added successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add task. Please try again.')),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter valid task details.')),
@@ -67,12 +108,14 @@ class _SupervisorTaskSchedulingPageState
     _taskTitleController.clear();
     _taskAssignedToController.clear();
     _taskDueDateController.clear();
-    _selectedPriority = 'All';
+    setState(() {
+      _selectedPriority = 'All';
+    });
   }
 
   // Filter and sort tasks
-  List<Task> _getFilteredTasks() {
-    List<Task> filteredTasks = taskBox.values.toList();
+  List<Task> _getFilteredTasks(List<Task> tasks) {
+    List<Task> filteredTasks = tasks;
 
     if (_selectedPriority != 'All') {
       filteredTasks = filteredTasks
@@ -82,17 +125,6 @@ class _SupervisorTaskSchedulingPageState
 
     filteredTasks.sort((a, b) => b.dueDate.compareTo(a.dueDate));
     return filteredTasks;
-  }
-
-  // Build task card for display
-  Widget _buildTaskCard(Task task, int index) {
-    return Card(
-      elevation: 2,
-      child: ListTile(
-        title: Text('${task.title}, Assigned to: ${task.assignedTo}'),
-        subtitle: Text('Due: ${task.dueDate}, Priority: ${task.priority}'),
-      ),
-    );
   }
 
   @override
@@ -109,24 +141,38 @@ class _SupervisorTaskSchedulingPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Title for Task List
               Text(
                 'Scheduled Tasks',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              Container(
-                height: 300,
-                child: ValueListenableBuilder(
-                  valueListenable: taskBox.listenable(),
-                  builder: (context, Box<Task> box, _) {
-                    return ListView.builder(
-                      itemCount: _getFilteredTasks().length,
+              // Scrollable List for Tasks
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tasks')
+                    .orderBy('dueDate', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  List<Task> tasks = snapshot.data!.docs
+                      .map((doc) => Task.fromFirestore(doc))
+                      .toList();
+
+                  return Container(
+                    height: 300,
+                    child: ListView.builder(
+                      itemCount: _getFilteredTasks(tasks).length,
                       itemBuilder: (context, index) {
-                        return _buildTaskCard(_getFilteredTasks()[index], index);
+                        return _buildTaskCard(
+                            _getFilteredTasks(tasks)[index], index);
                       },
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
               SizedBox(height: 20),
               Text(
@@ -138,6 +184,7 @@ class _SupervisorTaskSchedulingPageState
           ),
         ),
       ),
+      // Floating Action Buttons for Filtering Options
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -163,46 +210,117 @@ class _SupervisorTaskSchedulingPageState
             backgroundColor: _selectedPriority == 'Low'
                 ? Color(0xFF08B797)
                 : Colors.grey[300],
-            child: Icon(Icons.priority_high),
+            child: Icon(Icons.low_priority),
             tooltip: 'Low Priority',
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: () {
+              setState(() {
+                _selectedPriority = 'All';
+              });
+            },
+            backgroundColor: _selectedPriority == 'All'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
+            child: Icon(Icons.select_all),
+            tooltip: 'All',
           ),
         ],
       ),
     );
   }
 
-  // Build the form to add a new task
+  // Method to build task card with edit and delete options
+  Widget _buildTaskCard(Task task, int index) {
+    return Card(
+      elevation: 2,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              task.title,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 5),
+            Text('Assigned to: ${task.assignedTo}'),
+            Text('Priority: ${task.priority}'),
+            Text('Due Date: ${DateFormat('yyyy-MM-dd').format(task.dueDate)}'),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to Edit Task Page
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditTaskPage(
+                          task: task,
+                          onEditTask: (updatedTask) {
+                            // Save changes to Firestore
+                            FirebaseFirestore.instance
+                                .collection('tasks')
+                                .doc(task.id)
+                                .update(updatedTask.toMap());
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text('Edit'),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () {
+                    // Delete task from Firestore
+                    FirebaseFirestore.instance
+                        .collection('tasks')
+                        .doc(task.id)
+                        .delete();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Task deleted successfully!')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Form to add a new task
   Widget _buildTaskForm() {
     return Column(
       children: [
         TextField(
           controller: _taskTitleController,
-          decoration: InputDecoration(labelText: 'Task Title'),
+          decoration: InputDecoration(
+            labelText: 'Task Title',
+            border: OutlineInputBorder(),
+          ),
         ),
         SizedBox(height: 10),
         TextField(
           controller: _taskAssignedToController,
-          decoration: InputDecoration(labelText: 'Assigned To'),
+          decoration: InputDecoration(
+            labelText: 'Assigned To',
+            border: OutlineInputBorder(),
+          ),
         ),
         SizedBox(height: 10),
         TextField(
           controller: _taskDueDateController,
-          decoration: InputDecoration(labelText: 'Due Date (YYYY-MM-DD)'),
-          keyboardType: TextInputType.datetime,
-        ),
-        SizedBox(height: 10),
-        DropdownButtonFormField<String>(
-          value: _selectedPriority,
-          items: ['All', 'High', 'Low']
-              .map((String priority) =>
-                  DropdownMenuItem(value: priority, child: Text(priority)))
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedPriority = value!;
-            });
-          },
-          decoration: InputDecoration(labelText: 'Priority'),
+          decoration: InputDecoration(
+            labelText: 'Due Date (yyyy-MM-dd)',
+            border: OutlineInputBorder(),
+          ),
         ),
         SizedBox(height: 20),
         ElevatedButton(
@@ -210,6 +328,61 @@ class _SupervisorTaskSchedulingPageState
           child: Text('Add Task'),
         ),
       ],
+    );
+  }
+}
+
+class EditTaskPage extends StatelessWidget {
+  final Task task;
+  final Function(Task) onEditTask;
+
+  EditTaskPage({required this.task, required this.onEditTask});
+
+  @override
+  Widget build(BuildContext context) {
+    TextEditingController titleController =
+        TextEditingController(text: task.title);
+    TextEditingController assignedToController =
+        TextEditingController(text: task.assignedTo);
+    TextEditingController dueDateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(task.dueDate));
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Edit Task')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(labelText: 'Task Title'),
+            ),
+            TextField(
+              controller: assignedToController,
+              decoration: InputDecoration(labelText: 'Assigned To'),
+            ),
+            TextField(
+              controller: dueDateController,
+              decoration: InputDecoration(labelText: 'Due Date (yyyy-MM-dd)'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Task updatedTask = Task(
+                  id: task.id,
+                  title: titleController.text,
+                  assignedTo: assignedToController.text,
+                  priority: task.priority,
+                  dueDate: DateTime.parse(dueDateController.text),
+                );
+                onEditTask(updatedTask);
+                Navigator.pop(context);
+              },
+              child: Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

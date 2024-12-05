@@ -2,6 +2,7 @@ import 'package:hive/hive.dart';
 
 part 'task.g.dart'; // Hive type adapter generation
 
+
 @HiveType(typeId: 6)
 class Task {
   @HiveField(0)

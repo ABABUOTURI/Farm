@@ -15,9 +15,12 @@ class _WarehouseStaffEquipmentManagementPageState
   String _selectedType = 'All';
 
   // Controllers for form inputs
-  final TextEditingController _equipmentNameController = TextEditingController();
-  final TextEditingController _equipmentQuantityController = TextEditingController();
-  final TextEditingController _equipmentUnitController = TextEditingController();
+  final TextEditingController _equipmentNameController =
+      TextEditingController();
+  final TextEditingController _equipmentQuantityController =
+      TextEditingController();
+  final TextEditingController _equipmentUnitController =
+      TextEditingController();
   String _equipmentType = 'Heavy';
 
   @override
@@ -45,7 +48,9 @@ class _WarehouseStaffEquipmentManagementPageState
     // Only validate unit if the equipment type is 'Heavy'
     bool isHeavy = _equipmentType == 'Heavy';
 
-    if (equipmentName.isNotEmpty && quantity != null && (isHeavy ? equipmentUnit.isNotEmpty : true)) {
+    if (equipmentName.isNotEmpty &&
+        quantity != null &&
+        (isHeavy ? equipmentUnit.isNotEmpty : true)) {
       Equipment newEquipment = Equipment(
         name: equipmentName,
         quantity: quantity,
@@ -57,7 +62,9 @@ class _WarehouseStaffEquipmentManagementPageState
     } else {
       // Provide an appropriate error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter valid equipment details. Unit is required for heavy equipment.')),
+        SnackBar(
+            content: Text(
+                'Please enter valid equipment details. Unit is required for heavy equipment.')),
       );
     }
   }
@@ -173,7 +180,8 @@ class _WarehouseStaffEquipmentManagementPageState
                 _selectedType = 'Heavy';
               });
             },
-            backgroundColor: _selectedType == 'Heavy' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'Heavy' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.build),
             tooltip: 'Heavy Equipment',
           ),
@@ -184,7 +192,8 @@ class _WarehouseStaffEquipmentManagementPageState
                 _selectedType = 'Light';
               });
             },
-            backgroundColor: _selectedType == 'Light' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'Light' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.toys),
             tooltip: 'Light Equipment',
           ),
@@ -195,7 +204,8 @@ class _WarehouseStaffEquipmentManagementPageState
                 _selectedType = 'All';
               });
             },
-            backgroundColor: _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.select_all),
             tooltip: 'All',
           ),
@@ -206,7 +216,9 @@ class _WarehouseStaffEquipmentManagementPageState
                 _selectedType = 'Low Stock';
               });
             },
-            backgroundColor: _selectedType == 'Low Stock' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor: _selectedType == 'Low Stock'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
             child: Icon(Icons.warning),
             tooltip: 'Low Stock',
           ),
@@ -222,7 +234,8 @@ class _WarehouseStaffEquipmentManagementPageState
     return Card(
       elevation: 2,
       child: ListTile(
-        title: Text('${equipment.name}, ${equipment.quantity}, ${equipment.unit}, ${equipment.type}'),
+        title: Text(
+            '${equipment.name}, ${equipment.quantity}, ${equipment.unit}, ${equipment.type}'),
         subtitle: Text('Quantity: ${equipment.quantity}, ${equipment.unit}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -244,7 +257,8 @@ class _WarehouseStaffEquipmentManagementPageState
                       content: TextField(
                         controller: _restockController,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(labelText: 'Additional Quantity'),
+                        decoration:
+                            InputDecoration(labelText: 'Additional Quantity'),
                       ),
                       actions: [
                         TextButton(
@@ -254,7 +268,8 @@ class _WarehouseStaffEquipmentManagementPageState
                         ElevatedButton(
                           child: Text('Restock'),
                           onPressed: () {
-                            int additionalQuantity = int.tryParse(_restockController.text) ?? 0;
+                            int additionalQuantity =
+                                int.tryParse(_restockController.text) ?? 0;
                             if (additionalQuantity > 0) {
                               _restockEquipment(equipment, additionalQuantity);
                             }
@@ -303,30 +318,34 @@ class _WarehouseStaffEquipmentManagementPageState
         TextField(
           controller: _equipmentUnitController,
           decoration: InputDecoration(
-            labelText: 'Unit (Only for Heavy Equipment)',
+            labelText: 'Unit (only for heavy equipment)',
             border: OutlineInputBorder(),
           ),
         ),
         SizedBox(height: 10),
-        DropdownButton<String>(
-          value: _equipmentType,
-          items: <String>['Heavy', 'Light']
-              .map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _equipmentType = value!;
-            });
-          },
-        ),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: _addEquipment,
-          child: Text('Add Equipment'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            DropdownButton<String>(
+              value: _equipmentType,
+              onChanged: (String? newValue) {
+                setState(() {
+                  _equipmentType = newValue!;
+                });
+              },
+              items: <String>['Heavy', 'Light']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            ElevatedButton(
+              onPressed: _addEquipment,
+              child: Text('Add Equipment'),
+            ),
+          ],
         ),
       ],
     );

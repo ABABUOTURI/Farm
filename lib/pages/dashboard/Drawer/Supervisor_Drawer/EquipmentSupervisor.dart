@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -15,9 +16,12 @@ class _SupervisorEquipmentManagementPageState
   String _selectedType = 'All';
 
   // Controllers for form inputs
-  final TextEditingController _equipmentNameController = TextEditingController();
-  final TextEditingController _equipmentQuantityController = TextEditingController();
-  final TextEditingController _equipmentUnitController = TextEditingController();
+  final TextEditingController _equipmentNameController =
+      TextEditingController();
+  final TextEditingController _equipmentQuantityController =
+      TextEditingController();
+  final TextEditingController _equipmentUnitController =
+      TextEditingController();
   String _equipmentType = 'Heavy';
 
   @override
@@ -35,7 +39,7 @@ class _SupervisorEquipmentManagementPageState
   }
 
   // Method to add new equipment to the warehouse
-  void _addEquipment() {
+  void _addEquipment() async {
     String equipmentName = _equipmentNameController.text.trim();
     String equipmentQuantity = _equipmentQuantityController.text.trim();
     String equipmentUnit = _equipmentUnitController.text.trim();
@@ -45,19 +49,35 @@ class _SupervisorEquipmentManagementPageState
     // Only validate unit if the equipment type is 'Heavy'
     bool isHeavy = _equipmentType == 'Heavy';
 
-    if (equipmentName.isNotEmpty && quantity != null && (isHeavy ? equipmentUnit.isNotEmpty : true)) {
+    if (equipmentName.isNotEmpty &&
+        quantity != null &&
+        (isHeavy ? equipmentUnit.isNotEmpty : true)) {
       Equipment newEquipment = Equipment(
         name: equipmentName,
         quantity: quantity,
         unit: equipmentUnit,
         type: _equipmentType,
       );
+
+      // Adding equipment to Hive
       equipmentBox.add(newEquipment);
+
+      // Adding equipment to Firestore
+      await FirebaseFirestore.instance.collection('equipment').add({
+        'name': equipmentName,
+        'quantity': quantity,
+        'unit': equipmentUnit,
+        'type': _equipmentType,
+      });
+
       _clearInputFields();
+      _showNotification('Equipment added successfully!');
     } else {
       // Provide an appropriate error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter valid equipment details. Unit is required for heavy equipment.')),
+        SnackBar(
+            content: Text(
+                'Please enter valid equipment details. Unit is required for heavy equipment.')),
       );
     }
   }
@@ -85,7 +105,12 @@ class _SupervisorEquipmentManagementPageState
   }
 
   // Method to delete equipment
-  void _deleteEquipment(int index) {
+  void _deleteEquipment(int index) async {
+    Equipment equipment = equipmentBox.getAt(index)!;
+    await FirebaseFirestore.instance
+        .collection('equipment')
+        .doc(equipment.key.toString())
+        .delete(); // Delete from Firestore
     equipmentBox.deleteAt(index);
     setState(() {});
     _showNotification('Equipment deleted successfully!');
@@ -173,7 +198,8 @@ class _SupervisorEquipmentManagementPageState
                 _selectedType = 'Heavy';
               });
             },
-            backgroundColor: _selectedType == 'Heavy' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'Heavy' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.build),
             tooltip: 'Heavy Equipment',
           ),
@@ -184,7 +210,8 @@ class _SupervisorEquipmentManagementPageState
                 _selectedType = 'Light';
               });
             },
-            backgroundColor: _selectedType == 'Light' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'Light' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.toys),
             tooltip: 'Light Equipment',
           ),
@@ -195,7 +222,8 @@ class _SupervisorEquipmentManagementPageState
                 _selectedType = 'All';
               });
             },
-            backgroundColor: _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor:
+                _selectedType == 'All' ? Color(0xFF08B797) : Colors.grey[300],
             child: Icon(Icons.select_all),
             tooltip: 'All',
           ),
@@ -206,7 +234,9 @@ class _SupervisorEquipmentManagementPageState
                 _selectedType = 'Low Stock';
               });
             },
-            backgroundColor: _selectedType == 'Low Stock' ? Color(0xFF08B797) : Colors.grey[300],
+            backgroundColor: _selectedType == 'Low Stock'
+                ? Color(0xFF08B797)
+                : Colors.grey[300],
             child: Icon(Icons.warning),
             tooltip: 'Low Stock',
           ),
@@ -222,7 +252,8 @@ class _SupervisorEquipmentManagementPageState
     return Card(
       elevation: 2,
       child: ListTile(
-        title: Text('${equipment.name}, ${equipment.quantity}, ${equipment.unit}, ${equipment.type}'),
+        title: Text(
+            '${equipment.name}, ${equipment.quantity}, ${equipment.unit}, ${equipment.type}'),
         subtitle: Text('Quantity: ${equipment.quantity}, ${equipment.unit}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -244,7 +275,8 @@ class _SupervisorEquipmentManagementPageState
                       content: TextField(
                         controller: _restockController,
                         keyboardType: TextInputType.number,
-                        decoration: InputDecoration(labelText: 'Additional Quantity'),
+                        decoration:
+                            InputDecoration(labelText: 'Additional Quantity'),
                       ),
                       actions: [
                         TextButton(
@@ -254,7 +286,8 @@ class _SupervisorEquipmentManagementPageState
                         ElevatedButton(
                           child: Text('Restock'),
                           onPressed: () {
-                            int additionalQuantity = int.tryParse(_restockController.text) ?? 0;
+                            int additionalQuantity =
+                                int.tryParse(_restockController.text) ?? 0;
                             if (additionalQuantity > 0) {
                               _restockEquipment(equipment, additionalQuantity);
                             }
@@ -285,45 +318,33 @@ class _SupervisorEquipmentManagementPageState
       children: [
         TextField(
           controller: _equipmentNameController,
-          decoration: InputDecoration(
-            labelText: 'Equipment Name',
-            border: OutlineInputBorder(),
-          ),
+          decoration: InputDecoration(labelText: 'Equipment Name'),
         ),
-        SizedBox(height: 10),
         TextField(
           controller: _equipmentQuantityController,
-          decoration: InputDecoration(
-            labelText: 'Quantity',
-            border: OutlineInputBorder(),
-          ),
           keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: 'Quantity'),
         ),
-        SizedBox(height: 10),
         TextField(
           controller: _equipmentUnitController,
-          decoration: InputDecoration(
-            labelText: 'Unit (Only for Heavy Equipment)',
-            border: OutlineInputBorder(),
-          ),
+          decoration: InputDecoration(labelText: 'Unit'),
         ),
-        SizedBox(height: 10),
         DropdownButton<String>(
           value: _equipmentType,
-          items: <String>['Heavy', 'Light']
-              .map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (value) {
+          onChanged: (String? newValue) {
             setState(() {
-              _equipmentType = value!;
+              _equipmentType = newValue!;
             });
           },
+          items: ['Heavy', 'Light']
+              .map<DropdownMenuItem<String>>(
+                (String value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                ),
+              )
+              .toList(),
         ),
-        SizedBox(height: 10),
         ElevatedButton(
           onPressed: _addEquipment,
           child: Text('Add Equipment'),

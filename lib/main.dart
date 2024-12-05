@@ -8,10 +8,18 @@ import 'models/supplier_model.dart';
 import 'models/inventory_item.dart';
 import 'models/equipment.dart';
 import 'pages/auth/loader.dart'; // Your loader page
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase
+import 'firebase_options.dart'; // Import your Firebase options
 
 void main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions
+        .currentPlatform, // Initialize with the options from firebase_options.dart
+  );
 
   // Initialize Hive and register all adapters
   await Hive.initFlutter();

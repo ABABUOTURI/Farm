@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import '../../models/user.dart';
+import '../../models/user.dart'; // Assuming you have a custom user model
 import 'login_page.dart';
 
 class RegistrationForm extends StatefulWidget {
@@ -17,7 +19,8 @@ class _RegistrationFormState extends State<RegistrationForm> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final TextEditingController farmNameController = TextEditingController();
 
   String selectedRole = 'Farm Manager';
@@ -25,11 +28,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
   bool agreeToTerms = false;
 
   // List of roles for dropdown
-  final List<String> roles = [
-    'Farm Manager',
-    'Supervisor',
-    'Warehouse Staff'
-  ];
+  final List<String> roles = ['Farm Manager', 'Supervisor', 'Warehouse Staff'];
 
   // List of locations for dropdown
   final List<String> locations = [
@@ -55,23 +54,22 @@ class _RegistrationFormState extends State<RegistrationForm> {
               return Form(
                 key: _formKey,
                 child: Container(
-                  constraints: BoxConstraints(
-                    maxWidth: 600, // Set a max width for the form container
-                  ),
+                  constraints: BoxConstraints(maxWidth: 600),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildTextField(firstNameController, 'First Name', 'Please enter your first name'),
+                      _buildTextField(firstNameController, 'First Name',
+                          'Please enter your first name'),
                       SizedBox(height: 16.0),
-                      _buildTextField(lastNameController, 'Last Name', 'Please enter your last name'),
+                      _buildTextField(lastNameController, 'Last Name',
+                          'Please enter your last name'),
                       SizedBox(height: 16.0),
                       _buildEmailField(emailController),
                       SizedBox(height: 16.0),
-                      _buildTextField(phoneNumberController, 'Phone Number', null, keyboardType: TextInputType.phone),
+                      _buildTextField(
+                          phoneNumberController, 'Phone Number', null,
+                          keyboardType: TextInputType.phone),
                       SizedBox(height: 16.0),
-
-                      // Account Details Section
                       DropdownButtonFormField(
                         value: selectedRole,
                         items: roles.map((role) {
@@ -93,13 +91,18 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         },
                       ),
                       SizedBox(height: 16.0),
-                      _buildTextField(passwordController, 'Password', 'Password must be at least 6 characters', obscureText: true),
+                      _buildTextField(passwordController, 'Password',
+                          'Password must be at least 6 characters',
+                          obscureText: true),
                       SizedBox(height: 16.0),
-                      _buildTextField(confirmPasswordController, 'Confirm Password', 'Passwords do not match', obscureText: true),
+                      _buildTextField(confirmPasswordController,
+                          'Confirm Password', 'Passwords do not match',
+                          obscureText: true),
                       SizedBox(height: 16.0),
-
-                      // Farm/Organization Details
-                      _buildTextField(farmNameController, 'Farm/Organization Name', 'Please enter the farm or organization name'),
+                      _buildTextField(
+                          farmNameController,
+                          'Farm/Organization Name',
+                          'Please enter the farm or organization name'),
                       SizedBox(height: 16.0),
                       DropdownButtonFormField(
                         value: selectedLocation,
@@ -122,8 +125,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         },
                       ),
                       SizedBox(height: 16.0),
-
-                      // Security and Verification
                       CheckboxListTile(
                         title: Text('Agree to Terms and Conditions'),
                         value: agreeToTerms,
@@ -134,45 +135,42 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         },
                         controlAffinity: ListTileControlAffinity.leading,
                       ),
-
-                      // Register Button
                       SizedBox(height: 16.0),
-                      Container(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF08B797),
-                            padding: EdgeInsets.symmetric(vertical: 16.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate() && agreeToTerms) {
-                              _registerUser();
-                            } else if (!agreeToTerms) {
-                              _showAlertDialog('Terms Not Agreed', 'You must agree to the terms and conditions to register.');
-                            }
-                          },
-                          child: Text(
-                            'Register',
-                            style: TextStyle(fontSize: 18.0),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF08B797),
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
+                        onPressed: () {
+                          if (_formKey.currentState!.validate() &&
+                              agreeToTerms) {
+                            _registerUser();
+                          } else if (!agreeToTerms) {
+                            _showAlertDialog('Terms Not Agreed',
+                                'You must agree to the terms and conditions to register.');
+                          }
+                        },
+                        child: Text(
+                          'Register',
+                          style: TextStyle(fontSize: 18.0),
+                        ),
                       ),
-
-                      // Footer Section
                       SizedBox(height: 16.0),
                       TextButton(
                         onPressed: () {
-                          Navigator.push(
+                          Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => LoginPage()),
+                            MaterialPageRoute(
+                                builder: (context) => LoginPage()),
                           );
                         },
                         child: Text(
                           'Already have an account? Login',
-                          style: TextStyle(decoration: TextDecoration.underline),
+                          style:
+                              TextStyle(decoration: TextDecoration.underline),
                         ),
                       ),
                     ],
@@ -187,32 +185,46 @@ class _RegistrationFormState extends State<RegistrationForm> {
   }
 
   void _registerUser() async {
-    var userBox = await Hive.openBox<User>('users');
-
-    // Create a new user object
-    final user = User(
-      firstName: firstNameController.text,
-      lastName: lastNameController.text,
-      email: emailController.text,
-      phoneNumber: phoneNumberController.text,
-      password: passwordController.text,
-      role: selectedRole,
-      farmName: farmNameController.text,
-      location: selectedLocation, name: '',
-    );
-
-    // Save the user to Hive
-    await userBox.add(user);
-
-    // Show success message and navigate to Login Page
-    _showAlertDialog('Registration Successful', 'Your account has been created.').then((_) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
+    try {
+      // Create user in Firebase Authentication
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
-    });
 
-    // Clear form fields
+      // Save user details in Firestore
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
+        'firstName': firstNameController.text,
+        'lastName': lastNameController.text,
+        'email': emailController.text,
+        'phoneNumber': phoneNumberController.text,
+        'role': selectedRole,
+        'farmName': farmNameController.text,
+        'location': selectedLocation,
+      });
+
+      // Show success dialog and navigate to Login Page
+      _showAlertDialog('Registration Successful',
+              'Your account has been created successfully.')
+          .then((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginPage()),
+        );
+      });
+
+      // Clear the form
+      _clearFormFields();
+    } catch (e) {
+      _showAlertDialog('Registration Failed', e.toString());
+    }
+  }
+
+  void _clearFormFields() {
     firstNameController.clear();
     lastNameController.clear();
     emailController.clear();
@@ -247,7 +259,9 @@ class _RegistrationFormState extends State<RegistrationForm> {
     );
   }
 
-  TextFormField _buildTextField(TextEditingController controller, String label, String? errorMessage, {bool obscureText = false, TextInputType? keyboardType}) {
+  TextFormField _buildTextField(
+      TextEditingController controller, String label, String? errorMessage,
+      {bool obscureText = false, TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
@@ -258,12 +272,12 @@ class _RegistrationFormState extends State<RegistrationForm> {
       ),
       obscureText: obscureText,
       keyboardType: keyboardType,
-      validator: errorMessage != null ? (value) {
-        if (value == null || value.isEmpty) {
+      validator: (value) {
+        if (errorMessage != null && (value == null || value.isEmpty)) {
           return errorMessage;
         }
         return null;
-      } : null,
+      },
     );
   }
 
@@ -281,7 +295,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
         if (value == null || value.isEmpty) {
           return 'Please enter your email';
         }
-        // Regular expression for validating email
         String pattern = r'^[^@]+@[^@]+\.[^@]+';
         if (!RegExp(pattern).hasMatch(value)) {
           return 'Please enter a valid email';

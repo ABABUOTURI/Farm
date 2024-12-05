@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class CropLivestockManagementPage extends StatefulWidget {
@@ -8,9 +9,11 @@ class CropLivestockManagementPage extends StatefulWidget {
 
 class _CropLivestockManagementPageState
     extends State<CropLivestockManagementPage> {
-  // Dummy data for demonstration purposes
-  List<Map<String, String>> cropRecords = [];
-  List<Map<String, String>> livestockRecords = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  CollectionReference crops = FirebaseFirestore.instance.collection('crops');
+  CollectionReference livestock =
+      FirebaseFirestore.instance.collection('livestock');
+  String selectedType = 'Crops'; // Default selection
 
   @override
   Widget build(BuildContext context) {
@@ -27,27 +30,36 @@ class _CropLivestockManagementPageState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Crop Records
-              if (cropRecords.isNotEmpty)
-                _buildGroupCard('Crops', cropRecords),
-              if (cropRecords.isEmpty)
-                Center(
-                  child: Text(
-                    'No Crop records available.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ),
+              StreamBuilder<QuerySnapshot>(
+                stream: crops.snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text('No Crop records available.'));
+                  }
+                  var cropData = snapshot.data!.docs;
+                  return _buildGroupCard('Crops', cropData);
+                },
+              ),
               SizedBox(height: 20),
 
               // Livestock Records
-              if (livestockRecords.isNotEmpty)
-                _buildGroupCard('Livestock', livestockRecords),
-              if (livestockRecords.isEmpty)
-                Center(
-                  child: Text(
-                    'No Livestock records available.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                ),
+              StreamBuilder<QuerySnapshot>(
+                stream: livestock.snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                        child: Text('No Livestock records available.'));
+                  }
+                  var livestockData = snapshot.data!.docs;
+                  return _buildGroupCard('Livestock', livestockData);
+                },
+              ),
             ],
           ),
         ),
@@ -61,7 +73,7 @@ class _CropLivestockManagementPageState
   }
 
   // Method to build a grouped card
-  Widget _buildGroupCard(String title, List<Map<String, String>> records) {
+  Widget _buildGroupCard(String title, List<DocumentSnapshot> records) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -73,112 +85,85 @@ class _CropLivestockManagementPageState
               title,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            ...records.map((record) {
-              return ListTile(
-                title: Text(record.entries.first.value),
-                subtitle: Text(record.entries.map((e) => '${e.key}: ${e.value}').join('\n')),
-              );
-            }).toList(),
+            ...records.map((record) => ListTile(
+                  title: Text(record['name']),
+                  subtitle: Text('Details: ${record['details']}'),
+                )),
           ],
         ),
       ),
     );
   }
 
-  // Method to show Add Dialog
+  // Method to show the dialog for adding new records
   void _showAddDialog(BuildContext context) {
+    String name = '';
+    String details = '';
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Select Category'),
-          content: Text('Would you like to add a Crop or Livestock?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showInputForm(context, 'Crop');
+      builder: (context) => AlertDialog(
+        title: Text('Add New Record'),
+        content: Column(
+          children: [
+            TextField(
+              decoration: InputDecoration(labelText: 'Name'),
+              onChanged: (value) {
+                name = value;
               },
-              child: Text('Crop'),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showInputForm(context, 'Livestock');
+            TextField(
+              decoration: InputDecoration(labelText: 'Details'),
+              onChanged: (value) {
+                details = value;
               },
-              child: Text('Livestock'),
+            ),
+            DropdownButton<String>(
+              value: selectedType,
+              items: ['Crops', 'Livestock']
+                  .map((type) => DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedType = value!;
+                });
+              },
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _addRecord(name, details);
+              Navigator.of(context).pop();
+            },
+            child: Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 
-  // Method to show the input form based on selection
-  void _showInputForm(BuildContext context, String category) {
-    String name = '';
-    String detail1 = '';
-    String detail2 = '';
-
-    String field1 = category == 'Crop' ? 'Planting Date' : 'Breed';
-    String field2 = category == 'Crop' ? 'Harvesting Date' : 'Feeding Schedule';
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Add $category'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                decoration: InputDecoration(labelText: category),
-                onChanged: (value) => name = value,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: field1),
-                onChanged: (value) => detail1 = value,
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: field2),
-                onChanged: (value) => detail2 = value,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (category == 'Crop') {
-                  setState(() {
-                    cropRecords.add({
-                      category: name,
-                      field1: detail1,
-                      field2: detail2,
-                    });
-                  });
-                } else {
-                  setState(() {
-                    livestockRecords.add({
-                      category: name,
-                      field1: detail1,
-                      field2: detail2,
-                    });
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
+  // Method to add new crop/livestock record
+  void _addRecord(String name, String details) async {
+    if (selectedType == 'Crops') {
+      await crops.add({
+        'name': name,
+        'details': details,
+      });
+    } else if (selectedType == 'Livestock') {
+      await livestock.add({
+        'name': name,
+        'details': details,
+      });
+    }
+    setState(() {}); // Refresh the UI
   }
 }
